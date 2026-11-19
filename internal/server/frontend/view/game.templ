@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/player"
@@ -255,6 +256,10 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 				if len(st.Turns) > 0 {
 					@aroundTheClockHistory(v, st)
 				}
+			case cricket.State:
+				if len(st.Turns) > 0 {
+					@cricketHistory(v, st)
+				}
 		}
 		if hasTurns(v) {
 			@gameStats(v)
@@ -479,6 +484,23 @@ templ gameStats(v service.GameView) {
 								</tr>
 							}
 						</tbody>
+					case cricket.State:
+						<thead class="text-left text-xs uppercase tracking-wider text-white/50">
+							<tr>
+								<th class="py-2 font-semibold">{ T(ctx).Player() }</th>
+								<th class="py-2 text-right font-semibold">{ T(ctx).DartsMarks() }</th>
+								<th class="py-2 text-right font-semibold">{ T(ctx).MPR() }</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-white/5">
+							for _, ps := range st.Players {
+								<tr>
+									<td class="py-2 font-semibold">{ playerName(ctx, v, ps.PlayerID) }</td>
+									<td class="py-2 text-right">{ strconv.Itoa(ps.Stats.Darts) } / { strconv.Itoa(ps.Stats.Marks) }</td>
+									<td class="py-2 text-right">{ T(ctx).Decimal(ps.Stats.MPR) }</td>
+								</tr>
+							}
+						</tbody>
 				}
 			</table>
 		</div>
@@ -524,6 +546,9 @@ templ playerCard(v service.GameView, p progress, l playerLine, keypad bool) {
 				<div class="mt-1 text-xs uppercase tracking-widest text-white/50">{ l.StatCaption }</div>
 			</div>
 		</div>
+		if st, ok := v.State.(cricket.State); ok {
+			@cricketMarks(st, l.ID, false)
+		}
 		{{ tiles := p.running() && !p.BullingOff && !winner }}
 		if tiles || v.CanThrow {
 			// The darts of the visit, with the way to take the last dart back next to them.
@@ -562,6 +587,9 @@ templ playerRow(v service.GameView, p progress, l playerLine, next bool) {
 				<div class="text-xs font-semibold uppercase tracking-widest text-white/40">{ T(ctx).PlayerLeft() }</div>
 			} else if next {
 				<div class="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">{ T(ctx).Next() }</div>
+			}
+			if st, ok := v.State.(cricket.State); ok {
+				@cricketMarks(st, l.ID, true)
 			}
 			// The player's last turn, as part of their tile.
 			if t, ok := lastTurnOf(T(ctx), v, l.ID); ok {
@@ -874,6 +902,78 @@ templ aroundTheClockHistoryRow(v service.GameView, t aroundtheclock.Turn) {
 			} else {
 				{ targetLabel(T(ctx), t.Target) }
 			}
+		</td>
+	</tr>
+}
+
+// cricketMarks is a player's row of the scoreboard: the marks on each number as the usual
+// symbols. A number every player has closed is dead and greyed out; compact is for the
+// tiles of the waiting players.
+templ cricketMarks(st cricket.State, id int64, compact bool) {
+	{{ ps, _ := st.Player(id) }}
+	<div class={ "grid grid-cols-7 gap-1 text-center", templ.KV("mt-3", !compact), templ.KV("mt-1", compact) }>
+		for k, n := range cricket.Targets {
+			{{ closed := ps.Marks[k] >= cricket.MarksToClose }}
+			<div class={ "rounded-lg", templ.KV("py-1", !compact), templ.KV("opacity-30", st.Dead(k)), templ.KV("bg-board-green/25 text-emerald-300", closed), templ.KV("bg-white/5", !closed) }>
+				<div class={ "truncate font-semibold uppercase tracking-wider text-white/50", templ.KV("text-xs", !compact), templ.KV("text-[0.6rem]", compact) }>{ targetLabel(T(ctx), n) }</div>
+				<div role="img" aria-label={ T(ctx).NMarks(int(ps.Marks[k])) } class={ "flex items-center justify-center", templ.KV("h-8", !compact), templ.KV("h-6", compact) }>
+					<span class={ templ.KV("size-8", !compact), templ.KV("size-6", compact) }>
+						@cricketMark(ps.Marks[k])
+					</span>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+// cricketMark draws the marks on a cricket number as lines of exact angles: a slash at
+// 45 degrees for one mark, an X (the strokes at 90 degrees to each other) for two, and
+// the X in a circle for a closed number. It fills its parent and takes the text's color.
+templ cricketMark(marks uint8) {
+	if marks > 0 {
+		<svg viewBox="0 0 24 24" class="size-full" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+			<line x1="7" y1="17" x2="17" y2="7"></line>
+			if marks >= 2 {
+				<line x1="7" y1="7" x2="17" y2="17"></line>
+			}
+			if marks >= cricket.MarksToClose {
+				<circle cx="12" cy="12" r="10"></circle>
+			}
+		</svg>
+	}
+}
+
+// cricketHistory lists the turns, newest first; dartLink colors the darts that scored marks.
+templ cricketHistory(v service.GameView, st cricket.State) {
+	@historyPanel() {
+		<thead class="text-left text-xs uppercase tracking-wider text-white/50">
+			<tr>
+				<th class="py-2 font-semibold">{ T(ctx).Round() }</th>
+				<th class="py-2 font-semibold">{ T(ctx).Player() }</th>
+				<th class="py-2 font-semibold">{ T(ctx).Darts() }</th>
+				<th class="py-2 text-right font-semibold">{ T(ctx).Marks() }</th>
+				<th class="py-2 text-right font-semibold">{ T(ctx).Points() }</th>
+			</tr>
+		</thead>
+		<tbody class="divide-y divide-white/5">
+			for i := len(st.Turns) - 1; i >= 0; i-- {
+				@legSeparator(v, st.Turns[i].Set, st.Turns[i].Leg, i == len(st.Turns)-1 || st.Turns[i+1].Set != st.Turns[i].Set || st.Turns[i+1].Leg != st.Turns[i].Leg, 5)
+				@cricketHistoryRow(v, st.Turns[i])
+			}
+		</tbody>
+	}
+}
+
+templ cricketHistoryRow(v service.GameView, t cricket.Turn) {
+	<tr>
+		<td class="py-2 text-white/50">{ strconv.Itoa(t.Round) }</td>
+		<td class="py-2 font-semibold">{ playerName(ctx, v, t.PlayerID) }</td>
+		<td class="py-2">
+			@turnDartsList(v, t.Darts, t.Complete)
+		</td>
+		<td class="py-2 text-right">{ strconv.Itoa(sum(t.Marks)) }</td>
+		<td class="py-2 text-right">
+			<span class={ templ.KV("font-number text-lg font-extrabold text-amber-300", t.Points > 0) }>{ strconv.Itoa(t.Points) }</span>
 		</td>
 	</tr>
 }

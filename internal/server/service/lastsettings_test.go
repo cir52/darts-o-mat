@@ -8,6 +8,7 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/tournament"
 )
@@ -29,7 +30,7 @@ func TestNewSettings(t *testing.T) {
 		}
 		return got
 	}
-	for _, mode := range []game.Mode{game.ModeX01, game.ModeAroundTheClock} {
+	for _, mode := range []game.Mode{game.ModeX01, game.ModeAroundTheClock, game.ModeCricket} {
 		if got := settingsOf(anna, mode); !reflect.DeepEqual(got, DefaultSettings(mode)) {
 			t.Errorf("%s before the first game = %+v, want the defaults", mode, got)
 		}
@@ -58,6 +59,16 @@ func TestNewSettings(t *testing.T) {
 	}
 	if got := settingsOf(anna, game.ModeAroundTheClock); !reflect.DeepEqual(got, cup) {
 		t.Errorf("around the clock after a tournament = %+v, want %+v", got, cup)
+	}
+
+	carl := register(t, s, "carl")
+	cricketGame := game.Settings{Mode: game.ModeCricket, Legs: 1, Sets: 1,
+		Rules: &cricket.Settings{Variant: cricket.VariantCutThroat}}
+	if _, err := s.CreateGame(ctx, carl, game.Game{Settings: cricketGame}, 0, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := settingsOf(carl, game.ModeCricket); !reflect.DeepEqual(got, cricketGame) {
+		t.Errorf("cricket after a game = %+v, want %+v", got, cricketGame)
 	}
 
 	before := settingsOf(ben, game.ModeX01)

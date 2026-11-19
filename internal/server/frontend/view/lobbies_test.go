@@ -17,9 +17,10 @@ func TestLobbyFilterShowsTheSettingsOfTheMode(t *testing.T) {
 		filter    service.LobbyFilter
 		want, not []string
 	}{
-		{service.LobbyFilter{}, nil, []string{`name="start_score"`, `name="out_mode"`, `name="bull"`, `name="multiplier_skips"`}},
+		{service.LobbyFilter{}, nil, []string{`name="start_score"`, `name="out_mode"`, `name="bull"`, `name="multiplier_skips"`, `name="variant"`}},
 		{service.LobbyFilter{Mode: game.ModeX01, Rules: service.X01Filter{}}, []string{`name="start_score"`, `name="out_mode"`}, []string{`name="bull"`, `name="multiplier_skips"`}},
 		{service.LobbyFilter{Mode: game.ModeAroundTheClock, Rules: service.AroundTheClockFilter{}}, []string{`name="bull"`, `name="multiplier_skips"`}, []string{`name="start_score"`, `name="out_mode"`}},
+		{service.LobbyFilter{Mode: game.ModeCricket, Rules: service.CricketFilter{}}, []string{`name="variant"`}, []string{`name="bull"`, `name="start_score"`}},
 	} {
 		var b bytes.Buffer
 		if err := lobbyFilter(tt.filter).Render(context.Background(), &b); err != nil {

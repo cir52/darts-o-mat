@@ -6,12 +6,14 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 )
 
 // DefaultSettings are the settings the start form shows for a mode the account hasn't
 // created a game of yet: one leg without sets, bull-off and time limit, X01 from 501 with
-// a double to check out, around the clock with the bull at the end.
+// a double to check out, around the clock with the bull at the end, cricket the standard
+// way (the thrower scores).
 func DefaultSettings(mode game.Mode) game.Settings {
 	s := game.Settings{Mode: mode, Legs: 1, Sets: 1, Rules: game.NewRules(mode)}
 	switch rules := s.Rules.(type) {
@@ -19,6 +21,8 @@ func DefaultSettings(mode game.Mode) game.Settings {
 		rules.StartScore, rules.OutMode = 501, x01.OutModeDouble
 	case *aroundtheclock.Settings:
 		rules.Bull = true
+	case *cricket.Settings:
+		rules.Variant = cricket.VariantStandard
 	}
 	return s
 }

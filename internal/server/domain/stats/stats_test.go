@@ -20,8 +20,8 @@ func TestRecordAveragesDurations(t *testing.T) {
 	}
 }
 
-// The form is the three-dart average in X01 and the hit rate in around the clock, over the
-// results given, and needs MinFormGames of them.
+// The form is the three-dart average in X01, the hit rate in around the clock and the marks
+// per round in cricket, over the results given, and needs MinFormGames of them.
 func TestForm(t *testing.T) {
 	t.Parallel()
 	x01 := []Result{
@@ -43,6 +43,55 @@ func TestForm(t *testing.T) {
 	}
 	if form, ok := Form(game.ModeAroundTheClock, atc); !ok || form != 0.4 {
 		t.Errorf("around the clock form = %v, %v; want 0.4 (40 hits in 100 darts)", form, ok)
+	}
+
+	cr := []Result{
+		{Mode: game.ModeCricket, Darts: 30, Marks: 30},
+		{Mode: game.ModeCricket, Darts: 15, Marks: 15},
+		{Mode: game.ModeCricket, Darts: 15, Marks: 0},
+	}
+	if form, ok := Form(game.ModeCricket, cr); !ok || form != 2.25 {
+		t.Errorf("cricket form = %v, %v; want 2.25 (45 marks in 60 darts)", form, ok)
+	}
+	if _, ok := Form(game.ModeCricket, cr[:2]); ok {
+		t.Error("a cricket form from 2 games")
+	}
+}
+
+func TestSummaryAddsCricket(t *testing.T) {
+	t.Parallel()
+	var s Summary
+	s.AddResult(Result{Mode: game.ModeCricket, Won: true, BestLeg: 12, Darts: 12, Marks: 12})
+	s.AddResult(Result{Mode: game.ModeCricket, BestLeg: 9, Darts: 0, Marks: 0})
+	s.AddResult(Result{Mode: game.ModeX01, Darts: 3, Points: 60})
+	s.AddTournamentResult(TournamentResult{Mode: game.ModeCricket, Won: true})
+	s.AddQuit(Quit{Mode: game.ModeCricket})
+
+	c := s.Cricket
+	if c.Games != 2 || c.Wins != 1 || c.BestLeg != 9 || c.Darts != 12 || c.Marks != 12 || c.MPR != 3 {
+		t.Errorf("cricket = %+v; want 2 games, 1 win, best leg 9, 12 darts, 12 marks, MPR 3", c)
+	}
+	if c.Tournaments != 1 || c.TournamentWins != 1 || c.GamesLeft != 1 {
+		t.Errorf("cricket tournaments = %d/%d, left = %d; want 1/1, 1", c.Tournaments, c.TournamentWins, c.GamesLeft)
+	}
+	if s.X01.Games != 1 || s.X01.Tournaments != 0 || s.X01.GamesLeft != 0 || s.AroundTheClock.Any() {
+		t.Errorf("another mode counted cricket's: x01 %+v, around the clock %+v", s.X01, s.AroundTheClock)
+	}
+	if (Summary{}).Cricket.MPR != 0 {
+		t.Error("MPR without darts isn't 0")
+	}
+}
+
+func TestFormStep(t *testing.T) {
+	t.Parallel()
+	for mode, want := range map[game.Mode]float64{
+		game.ModeX01:            5,
+		game.ModeAroundTheClock: 0.05,
+		game.ModeCricket:        0.3,
+	} {
+		if got := FormStep(mode); got != want {
+			t.Errorf("FormStep(%s) = %v, want %v", mode, got, want)
+		}
 	}
 }
 
@@ -66,6 +115,9 @@ func TestFormWait(t *testing.T) {
 		{game.ModeAroundTheClock, 0.40, 0.45, 0, true},
 		{game.ModeAroundTheClock, 0.40, 0.46, 0, false},
 		{game.ModeAroundTheClock, 0.30, 0.40, time.Minute, true},
+		{game.ModeCricket, 2.0, 2.3, 0, true},
+		{game.ModeCricket, 2.0, 2.4, 0, false},
+		{game.ModeCricket, 2.0, 2.4, 30 * time.Second, true},
 	} {
 		if got := FormWait(c.mode, c.a, c.b) <= c.waited; got != c.want {
 			t.Errorf("%s: %v and %v after %v fit: %v, want %v", c.mode, c.a, c.b, c.waited, got, c.want)

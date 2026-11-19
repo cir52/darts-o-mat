@@ -6,6 +6,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/uptrace/bun"
 )
@@ -70,6 +71,27 @@ var modeTables = map[game.Mode]modeTable{
 			return nil
 		},
 	},
+	game.ModeCricket: {
+		table: "game_settings_cricket",
+		save: func(ctx context.Context, db bun.IDB, s *game.Settings) (int64, error) {
+			row := cricketRow{Settings: *s.Rules.(*cricket.Settings)}
+			_, err := db.NewInsert().Model(&row).Exec(ctx)
+			return row.ID, err
+		},
+		load: func(ctx context.Context, db bun.IDB, by map[int64][]*game.Settings) error {
+			var rows []cricketRow
+			if err := selectRows(ctx, db, &rows, by); err != nil {
+				return err
+			}
+			for _, r := range rows {
+				for _, s := range by[r.ID] {
+					settings := r.Settings
+					s.Rules = &settings
+				}
+			}
+			return nil
+		},
+	},
 }
 
 // The rows: the mode's own settings with an id.
@@ -85,6 +107,13 @@ type aroundTheClockRow struct {
 
 	ID int64 `bun:",pk,autoincrement"`
 	aroundtheclock.Settings
+}
+
+type cricketRow struct {
+	bun.BaseModel `bun:"table:game_settings_cricket"`
+
+	ID int64 `bun:",pk,autoincrement"`
+	cricket.Settings
 }
 
 // selectRows loads the rows with the ids of by.

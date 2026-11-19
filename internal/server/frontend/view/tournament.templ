@@ -206,13 +206,16 @@ templ tournamentStats(v service.TournamentView) {
 						if v.Tournament.Settings.Sets > 1 {
 							<th class="py-2 text-right font-semibold">{ T(ctx).Sets() }</th>
 						}
-						if v.Tournament.Settings.Mode == game.ModeX01 {
-							<th class="py-2 text-right font-semibold">{ T(ctx).Average3() }</th>
-							<th class="py-2 text-right font-semibold">{ T(ctx).Highest() }</th>
-							<th class="py-2 text-right font-semibold">180</th>
-							<th class="py-2 text-right font-semibold">{ T(ctx).Finish() }</th>
-						} else {
-							<th class="py-2 text-right font-semibold">{ T(ctx).Hits() }</th>
+						switch v.Tournament.Settings.Mode {
+							case game.ModeX01:
+								<th class="py-2 text-right font-semibold">{ T(ctx).Average3() }</th>
+								<th class="py-2 text-right font-semibold">{ T(ctx).Highest() }</th>
+								<th class="py-2 text-right font-semibold">180</th>
+								<th class="py-2 text-right font-semibold">{ T(ctx).Finish() }</th>
+							case game.ModeCricket:
+								<th class="py-2 text-right font-semibold">{ T(ctx).MPR() }</th>
+							default:
+								<th class="py-2 text-right font-semibold">{ T(ctx).Hits() }</th>
 						}
 						<th class="py-2 text-right font-semibold">{ T(ctx).BestLeg() }</th>
 					</tr>
@@ -231,7 +234,8 @@ templ tournamentStats(v service.TournamentView) {
 templ tournamentStatsRow(v service.TournamentView, s stats.Summary) {
 	<tr>
 		<td class="py-2">{ displayName(ctx, s.Player) }</td>
-		if v.Tournament.Settings.Mode == game.ModeX01 {
+		switch v.Tournament.Settings.Mode {
+		case game.ModeX01:
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.X01.Games) }</td>
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.X01.Wins) }</td>
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.X01.Legs) }</td>
@@ -243,7 +247,16 @@ templ tournamentStatsRow(v service.TournamentView, s stats.Summary) {
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.X01.Turns.Of180()) }</td>
 			<td class="py-2 text-right tabular-nums">{ orDash(s.X01.HighestCheckout > 0, strconv.FormatUint(s.X01.HighestCheckout, 10)) }</td>
 			<td class="py-2 text-right tabular-nums">{ orDash(s.X01.BestLeg > 0, strconv.Itoa(s.X01.BestLeg)) }</td>
-		} else {
+		case game.ModeCricket:
+			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.Cricket.Games) }</td>
+			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.Cricket.Wins) }</td>
+			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.Cricket.Legs) }</td>
+			if v.Tournament.Settings.Sets > 1 {
+				<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.Cricket.Sets) }</td>
+			}
+			<td class="py-2 text-right tabular-nums">{ orDash(s.Cricket.Darts > 0, T(ctx).Decimal(s.Cricket.MPR)) }</td>
+			<td class="py-2 text-right tabular-nums">{ orDash(s.Cricket.BestLeg > 0, strconv.Itoa(s.Cricket.BestLeg)) }</td>
+		default:
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.AroundTheClock.Games) }</td>
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.AroundTheClock.Wins) }</td>
 			<td class="py-2 text-right tabular-nums">{ strconv.Itoa(s.AroundTheClock.Legs) }</td>

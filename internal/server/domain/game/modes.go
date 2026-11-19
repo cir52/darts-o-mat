@@ -5,13 +5,14 @@ import (
 	"reflect"
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 )
 
-// Rules are the settings of a game mode (x01.Settings, aroundtheclock.Settings, ...), the
-// part of Settings that differs from mode to mode. Settings.Rules holds a pointer to the
-// mode's own type.
+// Rules are the settings of a game mode (x01.Settings, aroundtheclock.Settings,
+// cricket.Settings, ...), the part of Settings that differs from mode to mode.
+// Settings.Rules holds a pointer to the mode's own type.
 type Rules interface {
 	Validate() error
 }
@@ -37,6 +38,12 @@ var modes = map[Mode]mode{
 		rules: func() Rules { return &aroundtheclock.Settings{} },
 		play: func(r Rules, playerIDs []int64, log turn.Log) (State, error) {
 			return aroundtheclock.PlayLog(*r.(*aroundtheclock.Settings), playerIDs, log)
+		},
+	},
+	ModeCricket: {
+		rules: func() Rules { return &cricket.Settings{} },
+		play: func(r Rules, playerIDs []int64, log turn.Log) (State, error) {
+			return cricket.PlayLog(*r.(*cricket.Settings), playerIDs, log)
 		},
 	},
 }

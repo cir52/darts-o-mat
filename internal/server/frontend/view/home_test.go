@@ -9,13 +9,14 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 )
 
 // The start form preselects the settings it is given, and only those.
 func TestNewGamePreselectsTheSettings(t *testing.T) {
 	t.Parallel()
-	checked := regexp.MustCompile(`name="([a-z_]+)" value="([a-z0-9_]*)" checked`)
+	checked := regexp.MustCompile(`name="([a-z_]+)" value="([a-z0-9_-]*)" checked`)
 	render := func(s game.Settings) map[string]string {
 		t.Helper()
 		var b bytes.Buffer
@@ -44,5 +45,12 @@ func TestNewGamePreselectsTheSettings(t *testing.T) {
 	want = map[string]string{"multiplier_skips": "on", "legs": "1", "sets": "1", "turn_seconds": "0", "format": ""}
 	if got := render(atc); !maps.Equal(got, want) {
 		t.Errorf("around the clock: checked %v, want %v", got, want)
+	}
+
+	cut := game.Settings{Mode: game.ModeCricket, Legs: 1, Sets: 1,
+		Rules: &cricket.Settings{Variant: cricket.VariantCutThroat}}
+	want = map[string]string{"variant": "cut-throat", "legs": "1", "sets": "1", "turn_seconds": "0", "format": ""}
+	if got := render(cut); !maps.Equal(got, want) {
+		t.Errorf("cricket: checked %v, want %v", got, want)
 	}
 }

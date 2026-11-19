@@ -10,7 +10,7 @@ import (
 // sameInAllLanguages are texts that are the same in every language on purpose; they
 // don't count as untranslated.
 var sameInAllLanguages = []string{
-	"NavBoards", "AroundTheClock", "SetN", "LegN", "Checkout", "Single", "Triple", "Bull", "Bullseye", "Darts",
+	"NavBoards", "AroundTheClock", "Cricket", "CricketStandard", "CricketCutThroat", "FormMPR", "MPR", "Marks", "SetN", "LegN", "Checkout", "Single", "Triple", "Bull", "Bullseye", "Darts",
 	"Board", "ColorName", "Difference", "Finish", "Legs", "Name", "Server", "Sets", "ProjectPage", "AdminTitle", "AdminsTitle", "AccountsTitle", "AdminBadge",
 	"PresenceOnline", "PresenceOffline",
 }

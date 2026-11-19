@@ -36,9 +36,12 @@ func (textsEN) SoundOn() string      { return "🔊 Sound on" }
 func (textsEN) SoundOff() string     { return "🔇 Sound off" }
 func (textsEN) SoundBlocked() string { return "🔈 Click for sound" }
 
-func (textsEN) AroundTheClock() string  { return "Around the Clock" }
-func (textsEN) WithBull() string        { return " with bull" }
-func (textsEN) MultiplierSkips() string { return ", doubles/triples skip" }
+func (textsEN) AroundTheClock() string   { return "Around the Clock" }
+func (textsEN) Cricket() string          { return "Cricket" }
+func (textsEN) CricketStandard() string  { return "Standard" }
+func (textsEN) CricketCutThroat() string { return "Cut-Throat" }
+func (textsEN) WithBull() string         { return " with bull" }
+func (textsEN) MultiplierSkips() string  { return ", doubles/triples skip" }
 func (textsEN) FirstToSets(sets, legs int) string {
 	return "First to " + strconv.Itoa(sets) + " sets of " + strconv.Itoa(legs) + " " + plural(legs, "leg", "legs")
 }
@@ -71,7 +74,7 @@ func (textsEN) LandingFeatureText(i int) string {
 		"One program or one container, with SQLite for the living room or PostgreSQL for more. Your games and data stay with you.",
 		"Licensed under the AGPL-3.0. No subscription, no account at somebody else’s service.",
 		"darts-o-cam detects the darts with cheap cameras at the board and enters them into the running game.",
-		"X01 and Around the Clock, legs and sets, knockout and round-robin tournaments, friends, guests and statistics.",
+		"X01, Around the Clock and Cricket, legs and sets, knockout and round-robin tournaments, friends, guests and statistics.",
 	}[i%4]
 }
 
@@ -175,6 +178,7 @@ func (textsEN) PlayersOfSeats(players, seats int) string {
 }
 func (textsEN) FormAverage(average string) string { return "avg. " + average }
 func (textsEN) FormHitRate(rate string) string    { return rate + " hits" }
+func (textsEN) FormMPR(mpr string) string         { return mpr + " MPR" }
 func (textsEN) NewPlayer() string                 { return "new" }
 func (textsEN) JoinLobby() string                 { return "Join" }
 func (textsEN) LobbiesHint() string {
@@ -434,7 +438,7 @@ func (textsEN) TurnLimit() string   { return "Time per turn" }
 func (textsEN) NoTurnLimit() string { return "No limit" }
 func (textsEN) QuickMatch() string  { return "Quick match" }
 func (textsEN) QuickMatchHint() string {
-	return "Plays against someone of about your strength: you join a game that waits, or wait for an opponent yourself. The longer the search takes, the bigger the difference may be. X01 501 with double out or Around the Clock, one leg, a minute per turn."
+	return "Plays against someone of about your strength: you join a game that waits, or wait for an opponent yourself. The longer the search takes, the bigger the difference may be. X01 501 with double out, Around the Clock or standard Cricket, one leg, a minute per turn."
 }
 func (textsEN) FindOpponent() string { return "Find an opponent" }
 func (textsEN) QuickMatchWaiting() string {
@@ -466,6 +470,13 @@ func (textsEN) NoBoard() string         { return "none" }
 func (textsEN) X01Description() string  { return "Play down from 301, 501 or 701 to exactly 0." }
 func (textsEN) AroundTheClockDescription() string {
 	return "Hit the numbers 1 to 20 in order."
+}
+func (textsEN) CricketDescription() string {
+	return "Close 15 to 20 and the bull with three marks each, then score on what your opponents haven't closed."
+}
+func (textsEN) CricketVariant() string { return "Variant" }
+func (textsEN) CricketVariantHint() string {
+	return "Standard: you score on numbers your opponents haven't closed, and you win with all numbers closed if nobody has more points. Cut-Throat: the points go to your opponents instead, and you win if nobody has fewer."
 }
 func (textsEN) StartScore() string           { return "Starting score" }
 func (textsEN) CheckOutWith() string         { return "Check out with" }
@@ -616,6 +627,10 @@ func (textsEN) AvgGameTime() string    { return "Average game time" }
 func (textsEN) NDarts(n int) string    { return strconv.Itoa(n) + " darts" }
 func (textsEN) Games() string          { return "Games" }
 func (textsEN) DartsHits() string      { return "Darts / hits" }
+func (textsEN) DartsMarks() string     { return "Darts / marks" }
+func (textsEN) MPR() string            { return "MPR" }
+func (textsEN) Marks() string          { return "Marks" }
+func (textsEN) NMarks(n int) string    { return strconv.Itoa(n) + " " + plural(n, "mark", "marks") }
 
 func (textsEN) InvitedToTournament() string {
 	return "You're invited to this tournament."

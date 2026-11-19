@@ -2,6 +2,7 @@ package view
 
 import (
 	"context"
+	"encoding"
 	"fmt"
 	"math"
 	"slices"
@@ -17,6 +18,7 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/domain/board"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/player"
@@ -159,6 +161,12 @@ func modeName(t Texts, g game.Settings) string {
 			label += t.MultiplierSkips()
 		}
 		return label
+	case game.ModeCricket:
+		label := t.Cricket()
+		if r := g.Rules.(*cricket.Settings); r.Variant != cricket.VariantStandard {
+			label += ", " + cricketVariantName(t, r.Variant)
+		}
+		return label
 	}
 	return string(g.Mode)
 }
@@ -206,6 +214,10 @@ func playerLines(t Texts, v service.GameView, p progress) []playerLine {
 	case aroundtheclock.State:
 		for _, ps := range st.Players {
 			lines = append(lines, playerLine{ps.PlayerID, ps.Sets, ps.SetLegs, targetLabel(t, ps.Target), t.Target(), orDash(ps.Stats.Darts > 0, t.Percent(ps.Stats.HitRate)), t.HitRate(), ps.Left})
+		}
+	case cricket.State:
+		for _, ps := range st.Players {
+			lines = append(lines, playerLine{ps.PlayerID, ps.Sets, ps.SetLegs, strconv.Itoa(ps.Points), t.Points(), orDash(ps.Stats.Darts > 0, t.Decimal(ps.Stats.MPR)), t.MPR(), ps.Left})
 		}
 	}
 	first := p.CurrentPlayerID
@@ -275,8 +287,17 @@ func countTrue(flags []bool) int {
 	return n
 }
 
+// sum adds up the numbers, e.g. the marks of a turn.
+func sum(ns []int) int {
+	total := 0
+	for _, n := range ns {
+		total += n
+	}
+	return total
+}
+
 // dartClass marks a dart for coloring: "miss" for misses, "hit" for darts that hit the
-// target in around the clock, empty otherwise.
+// target in around the clock or scored a mark in cricket, empty otherwise.
 func dartClass(v service.GameView, d throw.Dart) string {
 	switch {
 	case d.Segment == dartboard.Miss:
@@ -363,23 +384,32 @@ func latestTurnEvent(v service.GameView) string {
 	return ""
 }
 
-// hitTarget reports whether a dart hit the player's target in around the clock.
+// hitTarget reports whether a dart hit the player's target in around the clock, or scored a
+// mark in cricket.
 func hitTarget(v service.GameView, d throw.Dart) bool {
 	hit, _ := targetResult(v, d)
 	return hit
 }
 
-// targetResult reports for around the clock whether a dart hit the player's target;
-// counted is false in other modes and for darts outside the turns (bull-off).
+// targetResult reports for around the clock whether a dart hit the player's target, and
+// for cricket whether it scored a mark; counted is false in other modes and for darts
+// outside the turns (bull-off).
 func targetResult(v service.GameView, d throw.Dart) (hit, counted bool) {
-	st, ok := v.State.(aroundtheclock.State)
-	if !ok {
-		return false, false
-	}
-	for _, t := range st.Turns {
-		for i, td := range t.Darts {
-			if td.ID == d.ID {
-				return t.Hits[i], true
+	switch st := v.State.(type) {
+	case aroundtheclock.State:
+		for _, t := range st.Turns {
+			for i, td := range t.Darts {
+				if td.ID == d.ID {
+					return t.Hits[i], true
+				}
+			}
+		}
+	case cricket.State:
+		for _, t := range st.Turns {
+			for i, td := range t.Darts {
+				if td.ID == d.ID {
+					return t.Marks[i] > 0, true
+				}
 			}
 		}
 	}
@@ -423,7 +453,7 @@ func soundKind(v service.GameView) string {
 		return "win"
 	case last.Segment == dartboard.Miss || counted && !hit: // in around the clock, every dart off the target misses
 		return "miss"
-	case hit:
+	case hit && v.Game.Mode == game.ModeAroundTheClock: // in cricket a scoring dart keeps its own sound
 		return "hit"
 	case last.Segment.IsBull():
 		return "bull"
@@ -721,6 +751,18 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 				return lastTurn{Darts: tr.Darts, Value: strconv.Itoa(countTrue(tr.Hits))}, true
 			}
 		}
+	case cricket.State:
+		for i := len(st.Turns) - 1; i >= 0; i-- {
+			tr := st.Turns[i]
+			if tr.PlayerID != playerID || !tr.Complete {
+				continue
+			}
+			r := lastTurn{Darts: tr.Darts, Value: t.NMarks(sum(tr.Marks))}
+			if tr.Points > 0 {
+				r.Value += " · " + strconv.Itoa(tr.Points)
+			}
+			return r, true
+		}
 	}
 	return lastTurn{}, false
 }
@@ -733,9 +775,13 @@ func lobbyPlayers(ctx context.Context, l service.OpenLobby) string {
 	for i, p := range l.Joined {
 		form := t.NewPlayer()
 		if f, ok := l.Forms[p.ID]; ok {
-			form = t.FormAverage(t.Decimal(f))
-			if l.Settings.Mode == game.ModeAroundTheClock {
+			switch l.Settings.Mode {
+			case game.ModeAroundTheClock:
 				form = t.FormHitRate(t.Percent(f))
+			case game.ModeCricket:
+				form = t.FormMPR(t.Decimal(f))
+			default:
+				form = t.FormAverage(t.Decimal(f))
 			}
 		}
 		names[i] = displayName(ctx, p) + " (" + form + ")"
@@ -783,13 +829,22 @@ func formValue(fits bool) string {
 	return ""
 }
 
-// outModeValue is the check-out mode as the filter form has it: empty for none.
-func outModeValue(m x01.OutMode) string {
+// textValue is a setting (check-out mode, cricket variant) as the forms have it: empty for
+// none.
+func textValue(m encoding.TextMarshaler) string {
 	name, err := m.MarshalText()
 	if err != nil {
 		return ""
 	}
 	return string(name)
+}
+
+// cricketVariantName names who scores in a variant of cricket.
+func cricketVariantName(t Texts, v cricket.Variant) string {
+	if v == cricket.VariantCutThroat {
+		return t.CricketCutThroat()
+	}
+	return t.CricketStandard()
 }
 
 // filterOption is one choice of a select of the lobby filter.

@@ -33,6 +33,9 @@ type Texts interface {
 
 	// Game modes and settings.
 	AroundTheClock() string
+	Cricket() string
+	CricketStandard() string
+	CricketCutThroat() string
 	WithBull() string
 	MultiplierSkips() string
 	FirstToSets(sets, legs int) string
@@ -60,10 +63,11 @@ type Texts interface {
 	NoOpenGames() string
 	PlayersOfSeats(players, seats int) string
 	// FormAverage and FormHitRate show a player's form in the list of open games (the
-	// three-dart average in X01, the hit rate in around the clock), NewPlayer one with
-	// too few games for it.
+	// three-dart average in X01, the hit rate in around the clock, the marks per round in
+	// cricket), NewPlayer one with too few games for it.
 	FormAverage(average string) string
 	FormHitRate(rate string) string
+	FormMPR(mpr string) string
 	NewPlayer() string
 	JoinLobby() string
 	LobbiesHint() string
@@ -316,6 +320,9 @@ type Texts interface {
 	NoBoard() string
 	X01Description() string
 	AroundTheClockDescription() string
+	CricketDescription() string
+	CricketVariant() string
+	CricketVariantHint() string
 	StartScore() string
 	CheckOutWith() string
 	AnyDart() string
@@ -419,6 +426,11 @@ type Texts interface {
 	NDarts(n int) string
 	Games() string
 	DartsHits() string
+	DartsMarks() string
+	MPR() string
+	// Marks is the column of the marks gained in a turn of cricket.
+	Marks() string
+	NMarks(n int) string
 
 	// Tournaments.
 	InvitedToTournament() string

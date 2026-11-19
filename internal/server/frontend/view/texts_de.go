@@ -69,7 +69,7 @@ func (textsDE) LandingFeatureText(i int) string {
 		"Ein Programm oder ein Container, mit SQLite fürs Wohnzimmer oder PostgreSQL für mehr. Deine Spiele und Daten bleiben bei dir.",
 		"Unter der AGPL-3.0 lizenziert. Kein Abo, kein Konto bei einem fremden Dienst.",
 		"darts-o-cam erkennt die Darts mit günstigen Kameras am Board und trägt sie ins laufende Spiel ein.",
-		"X01 und Around the Clock, Legs und Sets, K.-o.- und Jeder-gegen-jeden-Turniere, Freunde, Gäste und Statistiken.",
+		"X01, Around the Clock und Cricket, Legs und Sets, K.-o.- und Jeder-gegen-jeden-Turniere, Freunde, Gäste und Statistiken.",
 	}[i%4]
 }
 
@@ -419,7 +419,7 @@ func (textsDE) TurnLimit() string   { return "Zeit pro Zug" }
 func (textsDE) NoTurnLimit() string { return "Unbegrenzt" }
 func (textsDE) QuickMatch() string  { return "Schnelles Spiel" }
 func (textsDE) QuickMatchHint() string {
-	return "Spielt gegen jemanden, der ungefähr so stark ist wie du: Du trittst einem wartenden Spiel bei oder wartest selbst auf einen Gegner. Je länger die Suche dauert, desto größer darf der Unterschied sein. X01 501 mit Double-Out oder Around the Clock, ein Leg, eine Minute pro Zug."
+	return "Spielt gegen jemanden, der ungefähr so stark ist wie du: Du trittst einem wartenden Spiel bei oder wartest selbst auf einen Gegner. Je länger die Suche dauert, desto größer darf der Unterschied sein. X01 501 mit Double-Out, Around the Clock oder Standard-Cricket, ein Leg, eine Minute pro Zug."
 }
 func (textsDE) FindOpponent() string { return "Gegner suchen" }
 func (textsDE) QuickMatchWaiting() string {
@@ -450,6 +450,13 @@ func (textsDE) NoBoard() string         { return "ohne" }
 func (textsDE) X01Description() string  { return "Von 301, 501 oder 701 auf genau 0 runterspielen." }
 func (textsDE) AroundTheClockDescription() string {
 	return "Die Zahlen 1 bis 20 der Reihe nach treffen."
+}
+func (textsDE) CricketDescription() string {
+	return "Schließe die 15 bis 20 und das Bull mit je drei Marks und punkte dann auf alles, was deine Gegner noch nicht geschlossen haben."
+}
+func (textsDE) CricketVariant() string { return "Variante" }
+func (textsDE) CricketVariantHint() string {
+	return "Standard: Du punktest auf Zahlen, die deine Gegner noch nicht geschlossen haben, und gewinnst mit allen geschlossenen Zahlen, wenn niemand mehr Punkte hat. Cut-Throat: Die Punkte gehen stattdessen an deine Gegner, und du gewinnst, wenn niemand weniger hat."
 }
 func (textsDE) StartScore() string           { return "Startpunkte" }
 func (textsDE) CheckOutWith() string         { return "Auschecken mit" }
@@ -601,6 +608,8 @@ func (textsDE) AvgGameTime() string    { return "Ø Spieldauer" }
 func (textsDE) NDarts(n int) string    { return strconv.Itoa(n) + " Darts" }
 func (textsDE) Games() string          { return "Spiele" }
 func (textsDE) DartsHits() string      { return "Darts / Treffer" }
+func (textsDE) DartsMarks() string     { return "Darts / Marks" }
+func (textsDE) NMarks(n int) string    { return strconv.Itoa(n) + " " + plural(n, "Mark", "Marks") }
 
 func (textsDE) InvitedToTournament() string {
 	return "Du bist zu diesem Turnier eingeladen."

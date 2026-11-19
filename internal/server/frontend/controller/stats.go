@@ -11,7 +11,7 @@ import (
 func (c *Controller) showStats(w http.ResponseWriter, r *http.Request) {
 	acc := auth.Account(r.Context())
 	mode := game.Mode(r.URL.Query().Get("mode"))
-	if mode != game.ModeX01 && mode != game.ModeAroundTheClock {
+	if game.NewRules(mode) == nil {
 		mode = ""
 	}
 	summaries, err := c.svc.Stats(r.Context(), acc, mode)
