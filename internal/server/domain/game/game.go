@@ -187,6 +187,9 @@ type Game struct {
 	// in its schedule), nil for a single game.
 	TournamentID    *int64 `json:"tournament_id,omitempty"`
 	TournamentMatch int    `bun:",notnull,default:0" json:"tournament_match,omitempty"`
+	// RematchOf is the finished game this one is the rematch of (service.Rematch), nil for
+	// any other game. A game has at most one rematch.
+	RematchOf *int64 `json:"rematch_of,omitempty"`
 }
 
 // PlayerIDs returns the players in throwing order.

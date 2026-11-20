@@ -131,6 +131,21 @@ func (c *Controller) leaveGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// rematch starts the rematch of a finished game, or joins the one another player started,
+// and shows it.
+func (c *Controller) rematch(w http.ResponseWriter, r *http.Request) {
+	id, ok := urlID(w, r, "id")
+	if !ok {
+		return
+	}
+	v, err := c.svc.Rematch(r.Context(), auth.Account(r.Context()), id)
+	if err != nil {
+		c.handleGameError(w, r, id, err)
+		return
+	}
+	http.Redirect(w, r, gameURL(v.Game.ID), http.StatusSeeOther)
+}
+
 // showKeypad returns the board with the keypad to enter a dart the cameras missed.
 func (c *Controller) showKeypad(w http.ResponseWriter, r *http.Request) {
 	id, ok := urlID(w, r, "id")

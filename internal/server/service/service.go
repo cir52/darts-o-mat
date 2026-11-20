@@ -196,6 +196,11 @@ type GameView struct {
 	// accept on one, and for a viewer who can still throw, to change the board or take
 	// their players off it (UseBoard).
 	Boards []BoardChoice `json:"boards,omitempty"`
+	// RematchID is the rematch of the finished game (Rematch) if the viewer takes part in
+	// it, else 0.
+	RematchID int64 `json:"rematch_id,omitempty"`
+	// rematched is set once the game has a rematch, with the viewer or without.
+	rematched bool
 }
 
 // MayEdit reports whether the viewer may correct the entry of the log at index i: it is a
@@ -687,6 +692,9 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 			}
 			v.Ratings[r.RatedID] = r.Up
 		}
+	}
+	if err := s.setRematch(ctx, &v); err != nil {
+		return GameView{}, err
 	}
 	if v.Invited || (v.CanThrow && !v.Common().GameOver) {
 		if v.Boards, err = s.boardChoices(ctx, acc, g); err != nil {

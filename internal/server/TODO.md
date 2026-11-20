@@ -15,7 +15,6 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 ## Games
 
 - Round limit for a leg (noted 2026-11-18, came up while reviewing the Cricket proposal, issue #1): an optional largest number of rounds per leg for every mode, so a leg in which nobody hits doesn't go on for ever (e.g. Cricket's common 20 or 25 rounds). Open: who wins when the limit is reached (per mode: X01 the lowest rest, Around the Clock the furthest target, Cricket the most points), and what happens on a tie. Would live in `turn` with a setting per game.
-- A "Revanche" button on the banner of a finished game (the "Neues Spiel" button was removed from it on 2026-10-18; the logo in the header leads home).
 - Completing a game after a minute (see [AGENTS.md → game state](AGENTS.md#game-state)) doesn't refresh the pages of a tournament or a game that nobody has open: nothing runs then, the next look or click shows it. E.g. a short `hx-trigger` refresh of the tournament page while a result can still be corrected (to talk about with the user, 2026-10-20). Decided: no timer or background job, the minute is worked out when the game is looked at.
 - An "abort it and start the new one" offer when a player already has a seat elsewhere (left out 2026-10-22; leaving a game with others counts in "left early").
 - The game's settings in the lobby instead of the start form (asked 2026-10-22, put off by the user to finish the lobby first). Open question: who may change them until when, e.g. only while no other account is in, so strangers aren't surprised.

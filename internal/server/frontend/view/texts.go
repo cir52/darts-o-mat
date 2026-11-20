@@ -42,6 +42,8 @@ type Texts interface {
 
 	// Game page: title and lobby.
 	ToTournament() string
+	Rematch() string
+	ToRematch() string
 	BullOff() string
 	SetN(n int) string
 	LegN(n int) string

@@ -74,6 +74,7 @@ func (a *API) Routes() http.Handler {
 		r.Post("/games/{id}/takeout", a.takeout)
 		r.Post("/games/{id}/ratings", a.ratePlayer)
 		r.Post("/games/{id}/leave", a.leaveGame)
+		r.Post("/games/{id}/rematch", a.rematch)
 		r.Post("/games/{id}/quick", a.quickMatchMove)
 		r.Post("/games/{id}/board", a.useBoard)
 		r.Post("/games/{id}/bull-off", a.decideBullOff)
@@ -476,6 +477,18 @@ func (a *API) leaveGame(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+	respond(w, http.StatusOK, v, err)
+}
+
+// rematch starts the rematch of a finished game (or returns the one another player
+// started): the account's players sit in it, the other players with an account are
+// invited.
+func (a *API) rematch(w http.ResponseWriter, r *http.Request) {
+	id, ok := urlID(w, r, "id")
+	if !ok {
+		return
+	}
+	v, err := a.svc.Rematch(r.Context(), auth.Account(r.Context()), id)
 	respond(w, http.StatusOK, v, err)
 }
 

@@ -204,7 +204,7 @@ func (s *Service) CreateGame(ctx context.Context, acc account.Account, g game.Ga
 
 // createGame is CreateGame without remembering the settings: a quick match has its own.
 func (s *Service) createGame(ctx context.Context, acc account.Account, g game.Game, playerID int64, boardID *int64) (GameView, error) {
-	g.ID, g.StartedAt, g.CompletedAt, g.AbortedAt, g.TournamentID = 0, nil, nil, nil, nil
+	g.ID, g.StartedAt, g.CompletedAt, g.AbortedAt, g.TournamentID, g.RematchOf = 0, nil, nil, nil, nil, nil
 	g.Settings = g.Settings.WithDefaults()
 	g.Participants = []game.Participant{{PlayerID: firstPlayer(acc, playerID), Status: game.InvitationAccepted, BoardID: boardID}}
 	if err := g.Validate(); err != nil {

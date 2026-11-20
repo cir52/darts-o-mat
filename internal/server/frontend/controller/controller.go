@@ -93,6 +93,7 @@ func (c *Controller) Routes() http.Handler {
 		r.Post("/games/{id}/takeout", c.takeout)
 		r.Post("/games/{id}/ratings/{playerID}", c.ratePlayer)
 		r.Post("/games/{id}/leave", c.leaveGame)
+		r.Post("/games/{id}/rematch", c.rematch)
 		r.Post("/games/{id}/quick", c.quickMatchMove)
 		r.Post("/games/{id}/board", c.useBoard)
 		r.Post("/games/{id}/bull-off/{playerID}", c.decideBullOff)

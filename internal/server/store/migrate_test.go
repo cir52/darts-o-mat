@@ -96,6 +96,10 @@ func TestSQLiteMigrationsMatchModels(t *testing.T) {
 		Column("expires_at").Exec(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := fromModels.NewCreateIndex().Model((*game.Game)(nil)).Index("games_rematch_of").
+		Column("rematch_of").Unique().Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	if got, want := sqliteSchema(t, migrated), sqliteSchema(t, fromModels); got != want {
 		t.Errorf("the migrations give\n%s\nthe structs\n%s", got, want)

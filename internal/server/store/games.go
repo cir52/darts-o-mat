@@ -94,6 +94,19 @@ func (store *Store) GetGame(ctx context.Context, id int64) (game.Game, error) {
 	return games[0], nil
 }
 
+// GetRematch returns the rematch of a game (game.Game.RematchOf), ErrNotFound if it has
+// none.
+func (store *Store) GetRematch(ctx context.Context, gameID int64) (game.Game, error) {
+	games, err := store.scanGames(ctx, store.db.NewSelect().Where("rematch_of = ?", gameID))
+	if err != nil {
+		return game.Game{}, err
+	}
+	if len(games) == 0 {
+		return game.Game{}, ErrNotFound
+	}
+	return games[0], nil
+}
+
 // ListGames returns the most recent games with a player of the account (its own player
 // or one of its guests), newest first. A limit of 0 returns all of them.
 func (store *Store) ListGames(ctx context.Context, accountID, playerID int64, limit int64) ([]game.Game, error) {
