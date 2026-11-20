@@ -43,7 +43,7 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 
 ## Accounts and guests
 
-- Admin area: built with the imprint and the privacy policy (2026-10-22), opening and closing the registration (2026-10-23) and several admins (2026-10-24), see [AGENTS.md → admin and pages](AGENTS.md#admin-and-pages). Left: the pages and the admins in the JSON API (not needed so far).
+- Admin area: built with the imprint and the privacy policy (2026-10-22), opening and closing the registration (2026-10-23) and several admins (2026-10-24), see [AGENTS.md → admin and pages](AGENTS.md#admin-and-pages). Statistics of the server (2026-11-20) without trends: games or darts per week and the size of the database are left out for now (2026-11-20), as grouping by date and the size differ between SQLite and PostgreSQL. Left: the pages and the admins in the JSON API (not needed so far).
 
 ## Technical
 

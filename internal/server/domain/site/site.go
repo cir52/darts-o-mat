@@ -1,4 +1,5 @@
-// Package site has the settings of the server that the admin changes on the admin page.
+// Package site has what the admin page is about for the whole server: the settings the
+// admin changes and the numbers about the server.
 package site
 
 import "github.com/uptrace/bun"

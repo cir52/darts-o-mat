@@ -124,6 +124,22 @@ type Texts interface {
 	// CaptchaOn, CaptchaTurnedOff and CaptchaOff say on the admin page whether registering
 	// needs the captcha: on, turned off by an admin, or not possible without the keys from
 	// the server's start options. TurnCaptchaOn and TurnCaptchaOff are its button.
+	// The numbers about the server on the admin page; days is the period of the recent ones.
+	SiteStatsTitle() string
+	SiteStatsHint() string
+	ActiveAccounts(days int) string
+	NewAccounts(days int) string
+	DisabledAccounts() string
+	CameraBoards() string
+	UsedBoards(days int) string
+	RunningGames() string
+	CompletedGames(days int) string
+	AbortedGames() string
+	// CompletedOfMode is the number of completed games of the mode with the name.
+	CompletedOfMode(mode string) string
+	RunningCompletedTournaments() string
+	CameraDarts() string
+	RecentDarts(days int) string
 	// The list of accounts on the admin page: AccountsHint names how many it shows without a
 	// search, MoreAccounts says that there are more than that.
 	AccountsTitle() string

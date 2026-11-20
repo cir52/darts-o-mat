@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
+	"github.com/sj14/darts-o-mat/internal/server/domain/site"
 )
 
 // RegistrationOpen says whether anyone may create an account. The setting is read from the
@@ -38,4 +39,13 @@ func (s *Service) SetCaptcha(ctx context.Context, acc account.Account, on bool) 
 	}
 	settings.Captcha = on
 	return s.store.SetSiteSettings(ctx, settings)
+}
+
+// SiteStats counts what the server holds (accounts, games, darts, boards …) for the admin
+// page; ErrForbidden for everyone but an admin.
+func (s *Service) SiteStats(ctx context.Context, acc account.Account) (site.Stats, error) {
+	if err := checkAdmin(acc); err != nil {
+		return site.Stats{}, err
+	}
+	return s.store.SiteStats(ctx, s.now())
 }

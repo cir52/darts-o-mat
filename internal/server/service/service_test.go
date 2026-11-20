@@ -118,6 +118,12 @@ func TestAuth(t *testing.T) {
 	if err := s.SetRegistration(ctx, ben, false); !errors.Is(err, ErrForbidden) {
 		t.Errorf("close registration as ben: got %v, want ErrForbidden", err)
 	}
+	if _, err := s.SiteStats(ctx, ben); !errors.Is(err, ErrForbidden) {
+		t.Errorf("statistics of the server as ben: got %v, want ErrForbidden", err)
+	}
+	if stats, err := s.SiteStats(ctx, a); err != nil || stats.Accounts.Total != 2 {
+		t.Errorf("statistics of the server: %d accounts, %v; want 2", stats.Accounts.Total, err)
+	}
 	if err := s.SetRegistration(ctx, a, false); err != nil {
 		t.Fatal(err)
 	}

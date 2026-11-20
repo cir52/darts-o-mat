@@ -72,8 +72,14 @@ func (c *Controller) renderAdmin(w http.ResponseWriter, r *http.Request, status 
 		serverError(w, err)
 		return
 	}
+	stats, err := c.svc.SiteStats(r.Context(), acc)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
 	maps.Copy(pages, entered)
 	m := view.AdminModel{
+		Stats:             stats,
 		Admins:            admins,
 		Pages:             pages,
 		Registration:      open,

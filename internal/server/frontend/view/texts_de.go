@@ -107,6 +107,32 @@ func (textsDE) RegistrationIsOpen() string {
 func (textsDE) RegistrationIsClosed() string {
 	return "Die Registrierung ist geschlossen: Niemand kann einen neuen Account anlegen."
 }
+func (textsDE) SiteStatsTitle() string { return "Statistik" }
+func (textsDE) SiteStatsHint() string {
+	return "Gezählt aus dem, was dieser Server speichert. Spiele zählen, sobald sie beendet sind."
+}
+func (textsDE) ActiveAccounts(days int) string {
+	return "Aktive Accounts in den letzten " + strconv.Itoa(days) + " Tagen"
+}
+func (textsDE) NewAccounts(days int) string {
+	return "Neue Accounts in den letzten " + strconv.Itoa(days) + " Tagen"
+}
+func (textsDE) DisabledAccounts() string { return "Deaktivierte Accounts" }
+func (textsDE) CameraBoards() string     { return "Boards mit Kamera" }
+func (textsDE) UsedBoards(days int) string {
+	return "Boards mit Spielen in den letzten " + strconv.Itoa(days) + " Tagen"
+}
+func (textsDE) RunningGames() string { return "Laufende Spiele" }
+func (textsDE) CompletedGames(days int) string {
+	return "Beendete Spiele in den letzten " + strconv.Itoa(days) + " Tagen"
+}
+func (textsDE) AbortedGames() string                { return "Abgebrochene Spiele" }
+func (textsDE) CompletedOfMode(mode string) string  { return "Beendete Spiele: " + mode }
+func (textsDE) RunningCompletedTournaments() string { return "Turniere laufend / beendet" }
+func (textsDE) CameraDarts() string                 { return "Von der Kamera erkannte Darts" }
+func (textsDE) RecentDarts(days int) string {
+	return "Darts in den letzten " + strconv.Itoa(days) + " Tagen"
+}
 func (textsDE) AccountsTitle() string { return "Accounts" }
 func (textsDE) AccountsHint(limit int) string {
 	return "Die " + strconv.Itoa(limit) + " neuesten Accounts; die Suche findet die anderen nach Benutzername oder E-Mail. Ein deaktivierter Account kann sich nicht mehr einloggen, seine Spiele und Boards bleiben. Admins lassen sich hier weder deaktivieren noch löschen: Entzieh ihnen zuerst die Rolle."

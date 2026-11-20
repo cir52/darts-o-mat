@@ -113,6 +113,32 @@ func (textsEN) RegistrationIsOpen() string {
 func (textsEN) RegistrationIsClosed() string {
 	return "Registration is closed: nobody can create a new account."
 }
+func (textsEN) SiteStatsTitle() string { return "Statistics" }
+func (textsEN) SiteStatsHint() string {
+	return "Counted from what this server stores. Games count once they are completed."
+}
+func (textsEN) ActiveAccounts(days int) string {
+	return "Accounts active in the last " + strconv.Itoa(days) + " days"
+}
+func (textsEN) NewAccounts(days int) string {
+	return "New accounts in the last " + strconv.Itoa(days) + " days"
+}
+func (textsEN) DisabledAccounts() string { return "Disabled accounts" }
+func (textsEN) CameraBoards() string     { return "Boards with a camera" }
+func (textsEN) UsedBoards(days int) string {
+	return "Boards played on in the last " + strconv.Itoa(days) + " days"
+}
+func (textsEN) RunningGames() string { return "Running games" }
+func (textsEN) CompletedGames(days int) string {
+	return "Games completed in the last " + strconv.Itoa(days) + " days"
+}
+func (textsEN) AbortedGames() string                { return "Aborted games" }
+func (textsEN) CompletedOfMode(mode string) string  { return "Completed games: " + mode }
+func (textsEN) RunningCompletedTournaments() string { return "Tournaments running / completed" }
+func (textsEN) CameraDarts() string                 { return "Darts detected by a camera" }
+func (textsEN) RecentDarts(days int) string {
+	return "Darts in the last " + strconv.Itoa(days) + " days"
+}
 func (textsEN) AccountsTitle() string { return "Accounts" }
 func (textsEN) AccountsHint(limit int) string {
 	return "The " + strconv.Itoa(limit) + " newest accounts; search finds the others by username or email. A disabled account can't log in, its games and boards stay. Admins can be neither disabled nor deleted here: take the role away first."
