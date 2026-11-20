@@ -11,7 +11,7 @@ import (
 
 // Colors are the accent colors a player can have, by name; the web interface knows how
 // to show each of them.
-var Colors = []string{"green", "red", "sky", "violet", "pink", "orange", "teal", "indigo", "fuchsia", "cyan"}
+var Colors = []string{"green", "red", "orange", "sky", "violet", "pink"}
 
 // Player takes part in games. Every account has exactly one player;
 // guest players have no account and belong to the account in GuestOf.
@@ -35,11 +35,20 @@ func (p Player) Deleted() bool {
 	return p.DeletedAt != nil
 }
 
+// ChosenColor returns the color the player chose, or empty when they chose none or one
+// that is no longer in Colors; so Colors can change without touching the stored choices.
+func (p Player) ChosenColor() string {
+	if slices.Contains(Colors, p.Color) {
+		return p.Color
+	}
+	return ""
+}
+
 // Accent returns the player's accent color: the chosen one, else one of Colors picked by
 // the hash of the name, so it stays the same without storing anything.
 func (p Player) Accent() string {
-	if slices.Contains(Colors, p.Color) {
-		return p.Color
+	if c := p.ChosenColor(); c != "" {
+		return c
 	}
 	h := fnv.New32a()
 	h.Write([]byte(strings.ToLower(p.Name)))

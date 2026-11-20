@@ -20,6 +20,9 @@ func TestAccent(t *testing.T) {
 	if got := (Player{Name: "Anna", Color: "nope"}).Accent(); got != p.Accent() {
 		t.Errorf("unknown color: got %q, want the default %q", got, p.Accent())
 	}
+	if got := (Player{Name: "Anna", Color: "nope"}).ChosenColor(); got != "" {
+		t.Errorf("unknown color counts as chosen: %q", got)
+	}
 	seen := map[string]bool{}
 	for _, name := range []string{"Anna", "Ben", "Carla", "David", "Eva", "Felix", "Gina", "Hans"} {
 		seen[Player{Name: name}.Accent()] = true

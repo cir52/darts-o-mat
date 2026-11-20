@@ -184,7 +184,7 @@ func Settings(acc account.Account, p player.Player, guests []player.Player, last
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if p.Color == "" {
+				if p.ChosenColor() == "" {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " checked")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -278,7 +278,7 @@ func Settings(acc account.Account, p player.Player, guests []player.Player, last
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if p.Color == c {
+					if p.ChosenColor() == c {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " checked")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -291,7 +291,7 @@ func Settings(acc account.Account, p player.Player, guests []player.Player, last
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(T(ctx).ColorName(c)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/settings.templ`, Line: 35, Col: 131}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/settings.templ`, Line: 35, Col: 139}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 					if templ_7745c5c3_Err != nil {

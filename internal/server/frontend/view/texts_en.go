@@ -25,7 +25,7 @@ func (textsEN) AccentColorHint() string {
 }
 func (textsEN) ColorAuto() string { return "From my name" }
 func (textsEN) ColorName(color string) string {
-	if name, ok := map[string]string{"green": "Green", "red": "Red", "sky": "Sky blue", "violet": "Violet", "pink": "Pink", "orange": "Orange", "teal": "Teal", "indigo": "Indigo", "fuchsia": "Fuchsia", "cyan": "Cyan"}[color]; ok {
+	if name, ok := map[string]string{"green": "Green", "red": "Red", "sky": "Sky blue", "violet": "Violet", "pink": "Pink", "orange": "Orange"}[color]; ok {
 		return name
 	}
 	return color
