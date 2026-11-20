@@ -11,16 +11,21 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 )
 
 // QuickSettings are the rules of a quick match of the mode: one leg, no bull-off and a
 // minute per turn, so a stranger can't leave the game lying; X01 from 501 with a double to
-// check out, around the clock without the bull and without multiplier skips.
+// check out, around the clock without the bull and without multiplier skips, cricket the
+// standard way (the thrower scores).
 func QuickSettings(mode game.Mode) game.Settings {
 	s := game.Settings{Mode: mode, Legs: 1, Sets: 1, TurnSeconds: 60, Rules: game.NewRules(mode)}
-	if rules, ok := s.Rules.(*x01.Settings); ok {
+	switch rules := s.Rules.(type) {
+	case *x01.Settings:
 		rules.StartScore, rules.OutMode = 501, x01.OutModeDouble
+	case *cricket.Settings:
+		rules.Variant = cricket.VariantStandard
 	}
 	return s
 }

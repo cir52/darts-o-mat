@@ -9,6 +9,7 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/auth"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/tournament"
 	"github.com/sj14/darts-o-mat/internal/server/frontend/view"
@@ -21,7 +22,7 @@ func (c *Controller) home(w http.ResponseWriter, r *http.Request) {
 
 // renderHome shows the start page, with the options of mode if one is selected.
 func (c *Controller) renderHome(w http.ResponseWriter, r *http.Request, status int, mode game.Mode, failed view.Alert) {
-	if mode != game.ModeX01 && mode != game.ModeAroundTheClock {
+	if game.NewRules(mode) == nil {
 		mode = ""
 	}
 
@@ -180,6 +181,12 @@ func gameFromForm(r *http.Request) (game.Game, error) {
 			Bull:            r.FormValue("bull") != "",
 			MultiplierSkips: r.FormValue("multiplier_skips") != "",
 		}
+	case game.ModeCricket:
+		var variant cricket.Variant
+		if err := variant.UnmarshalText([]byte(r.FormValue("variant"))); err != nil {
+			return g, fmt.Errorf("%w: %w", service.ErrInvalid, err)
+		}
+		g.Rules = &cricket.Settings{Variant: variant}
 	}
 	return g, nil
 }

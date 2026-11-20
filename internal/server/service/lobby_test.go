@@ -267,7 +267,8 @@ func TestOpenLobbyForms(t *testing.T) {
 	for id := int64(1000); id < 1003; id++ { // anna: 3 games of X01 at 60, ben only 2
 		results = append(results,
 			stats.Result{GameID: id, PlayerID: anna.PlayerID, Mode: game.ModeX01, Darts: 15, Points: 300},
-			stats.Result{GameID: id + 10, PlayerID: anna.PlayerID, Mode: game.ModeAroundTheClock, Darts: 10, Hits: 5})
+			stats.Result{GameID: id + 10, PlayerID: anna.PlayerID, Mode: game.ModeAroundTheClock, Darts: 10, Hits: 5},
+			stats.Result{GameID: id + 20, PlayerID: anna.PlayerID, Mode: game.ModeCricket, Darts: 15, Marks: 10})
 		if id < 1002 {
 			results = append(results, stats.Result{GameID: id, PlayerID: ben.PlayerID, Mode: game.ModeX01, Darts: 15, Points: 300})
 		}
@@ -291,7 +292,7 @@ func TestOpenLobbyForms(t *testing.T) {
 		t.Fatalf("carla's open games = %+v, %v; want anna's", l, err)
 	}
 	if form, ok := l[0].Forms[anna.PlayerID]; !ok || form != 60 {
-		t.Errorf("anna's form = %v, %v; want her X01 average 60, not around the clock", form, ok)
+		t.Errorf("anna's form = %v, %v; want her X01 average 60, not around the clock or cricket", form, ok)
 	}
 	if form, ok := l[0].Forms[ben.PlayerID]; ok {
 		t.Errorf("ben has a form with 2 games: %v", form)

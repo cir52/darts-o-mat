@@ -8,6 +8,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/stats"
 )
 
@@ -52,6 +53,11 @@ func TestQuickMatch(t *testing.T) {
 	carla := register(t, s, "carla")
 	if v, err := s.QuickMatch(ctx, carla, game.ModeAroundTheClock, nil); err != nil || v.Started {
 		t.Errorf("carla's around the clock: started %v, %v; want waiting", v.Started, err)
+	}
+	// Cricket is played the standard way.
+	if v, err := s.QuickMatch(ctx, register(t, s, "dora"), game.ModeCricket, nil); err != nil || v.Started || !IsQuickMatch(v.Game) ||
+		v.Game.Rules.(*cricket.Settings).Variant != cricket.VariantStandard {
+		t.Errorf("dora's cricket: started %v, %+v, %v; want a waiting standard quick match", v.Started, v.Game.Settings, err)
 	}
 }
 

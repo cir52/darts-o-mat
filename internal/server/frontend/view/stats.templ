@@ -23,7 +23,7 @@ templ Stats(user string, summaries []stats.Summary, heatMode game.Mode) {
 							<span class="ml-3 font-sans text-base font-normal normal-case text-white/60" title={ T(ctx).RatingsReceived() }>👍 { strconv.Itoa(s.Reputation.Up) } · 👎 { strconv.Itoa(s.Reputation.Down) }</span>
 						}
 					</h2>
-					if !(showMode(heatMode, game.ModeX01) && s.X01.Any()) && !(showMode(heatMode, game.ModeAroundTheClock) && s.AroundTheClock.Any()) {
+					if !(showMode(heatMode, game.ModeX01) && s.X01.Any()) && !(showMode(heatMode, game.ModeAroundTheClock) && s.AroundTheClock.Any()) && !(showMode(heatMode, game.ModeCricket) && s.Cricket.Any()) {
 						<p class="text-white/50">{ T(ctx).NoFinishedGames() }</p>
 					}
 					<div class="grid gap-6 md:grid-cols-2">
@@ -74,6 +74,30 @@ templ Stats(user string, summaries []stats.Summary, heatMode game.Mode) {
 									@statRow(T(ctx).AvgLegTime(), orDash(s.AroundTheClock.AvgLeg > 0, clock(s.AroundTheClock.AvgLeg)))
 									@statRow(T(ctx).AvgGameTime(), orDash(s.AroundTheClock.AvgGame > 0, clock(s.AroundTheClock.AvgGame)))
 									@statRow(T(ctx).LeftEarly(), strconv.Itoa(s.AroundTheClock.GamesLeft)+" / "+strconv.Itoa(s.AroundTheClock.TournamentsLeft))
+								</dl>
+							</div>
+						}
+						if showMode(heatMode, game.ModeCricket) && s.Cricket.Any() {
+							<div>
+								<h3 class={ labelClass }>{ T(ctx).Cricket() }</h3>
+								<div class="mb-3 grid grid-cols-3 gap-2">
+									@statTile(T(ctx).Decimal(s.Cricket.MPR), T(ctx).MPR())
+									@statTile(strconv.Itoa(s.Cricket.Games), T(ctx).Games())
+									@statTile(orDash(s.Cricket.BestLeg > 0, strconv.Itoa(s.Cricket.BestLeg)), T(ctx).BestLeg())
+								</div>
+								<dl class="divide-y divide-white/5 text-sm">
+									@statRow(T(ctx).GamesWinsLegs(), strconv.Itoa(s.Cricket.Games)+" / "+strconv.Itoa(s.Cricket.Wins)+" / "+strconv.Itoa(s.Cricket.Legs))
+									if s.Cricket.Sets > 0 {
+										@statRow(T(ctx).SetsWonLabel(), strconv.Itoa(s.Cricket.Sets))
+									}
+									if s.Cricket.Tournaments > 0 {
+										@statRow(T(ctx).TournamentsWon(), strconv.Itoa(s.Cricket.Tournaments)+" / "+strconv.Itoa(s.Cricket.TournamentWins))
+									}
+									@statRow(T(ctx).DartsMarks(), strconv.Itoa(s.Cricket.Darts)+" / "+strconv.Itoa(s.Cricket.Marks))
+									@statRow(T(ctx).BestLeg(), orDash(s.Cricket.BestLeg > 0, T(ctx).NDarts(s.Cricket.BestLeg)))
+									@statRow(T(ctx).AvgLegTime(), orDash(s.Cricket.AvgLeg > 0, clock(s.Cricket.AvgLeg)))
+									@statRow(T(ctx).AvgGameTime(), orDash(s.Cricket.AvgGame > 0, clock(s.Cricket.AvgGame)))
+									@statRow(T(ctx).LeftEarly(), strconv.Itoa(s.Cricket.GamesLeft)+" / "+strconv.Itoa(s.Cricket.TournamentsLeft))
 								</dl>
 							</div>
 						}
@@ -133,6 +157,7 @@ templ modeFilter(selected game.Mode) {
 		@modeFilterLink("", selected, T(ctx).AllModes())
 		@modeFilterLink(game.ModeX01, selected, "X01")
 		@modeFilterLink(game.ModeAroundTheClock, selected, T(ctx).AroundTheClock())
+		@modeFilterLink(game.ModeCricket, selected, T(ctx).Cricket())
 	</nav>
 }
 

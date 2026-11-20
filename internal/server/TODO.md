@@ -11,6 +11,7 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 
 - Game mode segment training (planned 2026-10-14, why `dartboard.Segment` knows the inner and outer single field): e.g. hit a given segment as often as possible. A new mode follows [AGENTS.md → game state](AGENTS.md#game-state).
 - Around the clock where only doubles or only triples count (wished 2026-10-24): a setting of the mode (migration for both databases), the hit rule, the start form, a hint on the keypad; roughly 80–120 lines. Its results are another discipline for the form in the list of open games, see [AGENTS.md → open games](AGENTS.md#open-games): the stored result has to know the variant.
+- Highlight the open Cricket numbers on the board (left out 2026-11-18 to keep the first version of Cricket simple): the board's highlight (`targetMark`) takes one target only, Cricket would need several, per player.
 
 ## Games
 

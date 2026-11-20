@@ -7,6 +7,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/player"
 	"github.com/uptrace/bun"
@@ -51,11 +52,19 @@ type AroundTheClock struct {
 	HitRate float64 `json:"hit_rate"`
 }
 
+type Cricket struct {
+	Record
+	Darts int     `json:"darts"`
+	Marks int     `json:"marks"` // marks that counted, see cricket.Stats
+	MPR   float64 `json:"mpr"`   // marks per round of three darts
+}
+
 // Summary of a player over all finished games.
 type Summary struct {
 	Player         player.Player  `json:"player"`
 	X01            X01            `json:"x01"`
 	AroundTheClock AroundTheClock `json:"around_the_clock"`
+	Cricket        Cricket        `json:"cricket"`
 	// Heat is where the player's darts hit the board; empty without camera darts.
 	Heat Heat `json:"heat"`
 	// Reputation is the thumbs the player got from others after games.
@@ -91,6 +100,8 @@ type Result struct {
 	Turns60, Turns100, Turns140, Turns170, Turns180 int
 	// Around the clock: darts that hit the target.
 	Hits int
+	// Cricket: marks that counted (see cricket.Stats).
+	Marks int
 }
 
 // ResultsOf returns the result of every player of a game that is over (see
@@ -142,6 +153,10 @@ func resultOf(state game.State, playerID int64) (Result, bool) {
 		p, _ := st.Player(playerID)
 		r.Mode = game.ModeAroundTheClock
 		r.Darts, r.Hits = p.Stats.Darts, p.Stats.Hits
+	case cricket.State:
+		p, _ := st.Player(playerID)
+		r.Mode = game.ModeCricket
+		r.Darts, r.Marks = p.Stats.Darts, p.Stats.Marks
 	default:
 		return Result{}, false
 	}
@@ -165,6 +180,9 @@ func (s *Summary) AddResult(r Result) {
 	case game.ModeAroundTheClock:
 		s.AroundTheClock.Record.add(r)
 		s.AroundTheClock.add(r)
+	case game.ModeCricket:
+		s.Cricket.Record.add(r)
+		s.Cricket.add(r)
 	}
 }
 
@@ -207,6 +225,12 @@ func (s *AroundTheClock) add(p Result) {
 	}
 }
 
+func (s *Cricket) add(p Result) {
+	s.Darts += p.Darts
+	s.Marks += p.Marks
+	s.MPR = cricket.MPR(s.Marks, s.Darts)
+}
+
 // FormGames is how many of a player's most recent completed games of a mode their form is
 // worked out from, so it shows how they play now; MinFormGames is how many it needs.
 const (
@@ -215,10 +239,11 @@ const (
 )
 
 // Form is how well a player plays a mode lately, to find opponents of about the same
-// strength: the three-dart average in X01, the share of hits in around the clock. Both
-// hardly depend on the game's settings (start score, check-out, bull, multiplier skips),
-// unlike e.g. the darts to finish. results are the player's of the mode, the most recent
-// FormGames of them; ok is false with fewer than MinFormGames.
+// strength: the three-dart average in X01, the share of hits in around the clock, the
+// marks per round in cricket. All hardly depend on the game's settings (start score,
+// check-out, bull, multiplier skips, variant), unlike e.g. the darts to finish. results
+// are the player's of the mode, the most recent FormGames of them; ok is false with fewer
+// than MinFormGames.
 func Form(mode game.Mode, results []Result) (form float64, ok bool) {
 	if len(results) < MinFormGames {
 		return 0, false
@@ -232,6 +257,8 @@ func Form(mode game.Mode, results []Result) (form float64, ok bool) {
 		return s.X01.Average, true
 	case game.ModeAroundTheClock:
 		return s.AroundTheClock.HitRate, true
+	case game.ModeCricket:
+		return s.Cricket.MPR, true
 	}
 	return 0, false
 }
@@ -245,10 +272,13 @@ const (
 
 // FormStep is how much two forms of the mode may differ at first, and how much more with
 // every FormWiden of waiting: 5 points of the X01 average, 5 percentage points of the
-// around the clock hit rate.
+// around the clock hit rate, 0.3 marks per round in cricket.
 func FormStep(mode game.Mode) float64 {
-	if mode == game.ModeAroundTheClock {
+	switch mode {
+	case game.ModeAroundTheClock:
 		return 0.05
+	case game.ModeCricket:
+		return 0.3
 	}
 	return 5
 }
@@ -277,12 +307,20 @@ type TournamentResult struct {
 	Won          bool      `bun:",notnull"`
 }
 
+// record is the part of the summary every mode counts in: X01 for any other mode.
+func (s *Summary) record(mode game.Mode) *Record {
+	switch mode {
+	case game.ModeAroundTheClock:
+		return &s.AroundTheClock.Record
+	case game.ModeCricket:
+		return &s.Cricket.Record
+	}
+	return &s.X01.Record
+}
+
 // AddTournamentResult adds a finished tournament of the player to the summary.
 func (s *Summary) AddTournamentResult(t TournamentResult) {
-	r := &s.X01.Record
-	if t.Mode == game.ModeAroundTheClock {
-		r = &s.AroundTheClock.Record
-	}
+	r := s.record(t.Mode)
 	r.Tournaments++
 	if t.Won {
 		r.TournamentWins++
@@ -312,10 +350,7 @@ type Quit struct {
 
 // AddQuit adds a game or tournament the player left to the summary.
 func (s *Summary) AddQuit(q Quit) {
-	r := &s.X01.Record
-	if q.Mode == game.ModeAroundTheClock {
-		r = &s.AroundTheClock.Record
-	}
+	r := s.record(q.Mode)
 	if q.Tournament {
 		r.TournamentsLeft++
 	} else {

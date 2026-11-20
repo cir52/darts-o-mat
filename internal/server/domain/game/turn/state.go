@@ -141,7 +141,7 @@ func (t *Turn) State(playerIDs []int64) State {
 		Set:               t.Set,
 		Leg:               t.Leg,
 		WaitingForTakeout: t.Waiting(),
-		LegOver:           t.waiting == nextLeg || t.waiting == nextSet,
+		LegOver:           t.legOver(),
 		SetOver:           t.waiting == nextSet,
 		BullingOff:        t.BullingOff(),
 		BullOff:           []BullOffDart{},

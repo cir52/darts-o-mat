@@ -155,7 +155,7 @@ type GameView struct {
 	Game    game.Game       `json:"game"`
 	Players []player.Player `json:"players"` // in throwing order
 	Darts   []throw.Dart    `json:"darts"`   // the log: darts, takeouts and players leaving
-	State   game.State      `json:"state"`   // x01.State or aroundtheclock.State, depending on the mode
+	State   game.State      `json:"state"`   // x01.State, aroundtheclock.State or cricket.State, depending on the mode
 	// Completed is set once the result is final, see game.Game.Completed. Darts can't be
 	// undone or corrected anymore then.
 	Completed bool `json:"completed"`

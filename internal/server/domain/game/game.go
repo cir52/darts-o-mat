@@ -32,6 +32,7 @@ type Mode string
 const (
 	ModeX01            Mode = "x01"
 	ModeAroundTheClock Mode = "around_the_clock"
+	ModeCricket        Mode = "cricket"
 )
 
 // Settings are how a game is played: the mode with its settings, legs, sets, bulling
@@ -302,8 +303,8 @@ func (g Game) WaitsForTakeout() bool {
 	return slices.ContainsFunc(g.Participants, func(p Participant) bool { return p.BoardID != nil })
 }
 
-// State is a replayed game's state, of its mode's type: x01.State or
-// aroundtheclock.State. The part all modes share is its turn.State.
+// State is a replayed game's state, of its mode's type: x01.State, aroundtheclock.State or
+// cricket.State. The part all modes share is its turn.State.
 type State interface {
 	Common() turn.State
 }

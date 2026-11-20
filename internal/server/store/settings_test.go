@@ -6,6 +6,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 )
 
@@ -29,6 +30,7 @@ func TestModeSettingsTables(t *testing.T) {
 	base := game.Settings{Legs: 1, Sets: 1}
 	a := create(game.Settings{Mode: game.ModeX01, Legs: base.Legs, Sets: base.Sets, Rules: &x01.Settings{StartScore: 501, OutMode: x01.OutModeDouble}})
 	b := create(game.Settings{Mode: game.ModeAroundTheClock, Legs: base.Legs, Sets: base.Sets, Rules: &aroundtheclock.Settings{Bull: true}})
+	c := create(game.Settings{Mode: game.ModeCricket, Legs: base.Legs, Sets: base.Sets, Rules: &cricket.Settings{Variant: cricket.VariantCutThroat}})
 	shared := create(a.Settings) // takes over a's row
 
 	for _, tt := range []struct {
@@ -37,6 +39,10 @@ func TestModeSettingsTables(t *testing.T) {
 	}{
 		{a.ID, func(g game.Game) bool { r, ok := g.Rules.(*x01.Settings); return ok && r.StartScore == 501 }},
 		{b.ID, func(g game.Game) bool { r, ok := g.Rules.(*aroundtheclock.Settings); return ok && r.Bull }},
+		{c.ID, func(g game.Game) bool {
+			r, ok := g.Rules.(*cricket.Settings)
+			return ok && r.Variant == cricket.VariantCutThroat
+		}},
 		{shared.ID, func(g game.Game) bool {
 			r, ok := g.Rules.(*x01.Settings)
 			return ok && r.StartScore == 501 && g.SettingsID == a.SettingsID

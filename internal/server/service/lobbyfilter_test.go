@@ -6,6 +6,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/tournament"
 )
@@ -20,6 +21,7 @@ func TestLobbyFilterMatch(t *testing.T) {
 	x301 := game.Settings{Mode: game.ModeX01, Legs: 1, Sets: 2, TurnSeconds: 60, Rules: &x01.Settings{StartScore: 301, OutMode: x01.OutModeSingle}}
 	atc := game.Settings{Mode: game.ModeAroundTheClock, Legs: 1, Sets: 1, Rules: &aroundtheclock.Settings{}}
 	atcBull := game.Settings{Mode: game.ModeAroundTheClock, Legs: 1, Sets: 1, Rules: &aroundtheclock.Settings{Bull: true}}
+	cricketStd := game.Settings{Mode: game.ModeCricket, Legs: 1, Sets: 1, Rules: &cricket.Settings{Variant: cricket.VariantStandard}}
 
 	tests := []struct {
 		name   string
@@ -44,6 +46,10 @@ func TestLobbyFilterMatch(t *testing.T) {
 		{"without skips", LobbyFilter{Rules: AroundTheClockFilter{MultiplierSkips: No}}, lobbyOf(atc, false, ""), true},
 		{"with skips", LobbyFilter{Rules: AroundTheClockFilter{MultiplierSkips: Yes}}, lobbyOf(atc, false, ""), false},
 		{"the bull never fits X01", LobbyFilter{Rules: AroundTheClockFilter{Bull: No}}, lobbyOf(x501, false, ""), false},
+		{"cricket variant", LobbyFilter{Rules: CricketFilter{Variant: cricket.VariantStandard}}, lobbyOf(cricketStd, false, ""), true},
+		{"other cricket variant", LobbyFilter{Rules: CricketFilter{Variant: cricket.VariantCutThroat}}, lobbyOf(cricketStd, false, ""), false},
+		{"any cricket variant", LobbyFilter{Rules: CricketFilter{}}, lobbyOf(cricketStd, false, ""), true},
+		{"the variant never fits X01", LobbyFilter{Rules: CricketFilter{}}, lobbyOf(x501, false, ""), false},
 		{"check-out", LobbyFilter{Rules: X01Filter{OutMode: x01.OutModeDouble}}, lobbyOf(x501, false, ""), true},
 		{"other check-out", LobbyFilter{Rules: X01Filter{OutMode: x01.OutModeMaster}}, lobbyOf(x501, false, ""), false},
 		{"legs", LobbyFilter{Legs: 3}, lobbyOf(x501, false, ""), true},
@@ -101,6 +107,14 @@ func TestLobbyFilterFromQuery(t *testing.T) {
 	q, _ = url.ParseQuery("mode=around_the_clock&bull=yes&multiplier_skips=no&start_score=501&out_mode=double")
 	if got, want := LobbyFilterFromQuery(q), (LobbyFilter{Mode: game.ModeAroundTheClock, Rules: AroundTheClockFilter{Bull: Yes, MultiplierSkips: No}}); got != want {
 		t.Errorf("Around the Clock: got %+v, want %+v", got, want)
+	}
+	q, _ = url.ParseQuery("mode=cricket&variant=cut-throat&bull=yes")
+	if got, want := LobbyFilterFromQuery(q), (LobbyFilter{Mode: game.ModeCricket, Rules: CricketFilter{Variant: cricket.VariantCutThroat}}); got != want {
+		t.Errorf("Cricket: got %+v, want %+v", got, want)
+	}
+	q, _ = url.ParseQuery("mode=cricket&variant=nonsense")
+	if got, want := LobbyFilterFromQuery(q), (LobbyFilter{Mode: game.ModeCricket, Rules: CricketFilter{}}); got != want {
+		t.Errorf("Cricket with a nonsense variant: got %+v, want %+v", got, want)
 	}
 	q, _ = url.ParseQuery("start_score=501&bull=yes")
 	if got := LobbyFilterFromQuery(q); got.Active() {

@@ -6,6 +6,7 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/board"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/tournament"
 	"github.com/sj14/darts-o-mat/internal/server/service"
 )
@@ -50,6 +51,7 @@ templ quickMatch(boards []board.Board) {
 			<select name="mode" class={ inputClass, "w-auto! py-2!" } aria-label={ T(ctx).GameMode() }>
 				<option value={ string(game.ModeX01) }>X01</option>
 				<option value={ string(game.ModeAroundTheClock) }>{ T(ctx).AroundTheClock() }</option>
+				<option value={ string(game.ModeCricket) }>{ T(ctx).Cricket() }</option>
 			</select>
 			@boardSelect(boards, false)
 			<button type="submit" class={ btnPrimary }>{ T(ctx).FindOpponent() }</button>
@@ -79,11 +81,12 @@ templ lobbyFilter(f service.LobbyFilter) {
 			@filterSelect("mode", T(ctx).GameMode(), string(f.Mode), []filterOption{
 				{string(game.ModeX01), "X01"},
 				{string(game.ModeAroundTheClock), T(ctx).AroundTheClock()},
+				{string(game.ModeCricket), T(ctx).Cricket()},
 			})
 			switch rules := f.Rules.(type) {
 				case service.X01Filter:
 					@filterSelect("start_score", T(ctx).StartScore(), strconv.FormatUint(rules.StartScore, 10), []filterOption{{"301", "301"}, {"501", "501"}, {"701", "701"}})
-					@filterSelect("out_mode", T(ctx).CheckOutWith(), outModeValue(rules.OutMode), []filterOption{
+					@filterSelect("out_mode", T(ctx).CheckOutWith(), textValue(rules.OutMode), []filterOption{
 						{"single", T(ctx).AnyDart()},
 						{"double", T(ctx).Double()},
 						{"master", T(ctx).DoubleOrTriple()},
@@ -91,6 +94,11 @@ templ lobbyFilter(f service.LobbyFilter) {
 				case service.AroundTheClockFilter:
 					@filterSelect("bull", T(ctx).FilterBull(), string(rules.Bull), yesNoOptions(T(ctx)))
 					@filterSelect("multiplier_skips", T(ctx).FilterSkips(), string(rules.MultiplierSkips), yesNoOptions(T(ctx)))
+				case service.CricketFilter:
+					@filterSelect("variant", T(ctx).CricketVariant(), textValue(rules.Variant), []filterOption{
+						{textValue(cricket.VariantStandard), cricketVariantName(T(ctx), cricket.VariantStandard)},
+						{textValue(cricket.VariantCutThroat), cricketVariantName(T(ctx), cricket.VariantCutThroat)},
+					})
 			}
 			@filterSelect("legs", T(ctx).Legs(), filterValue(f.Legs), numberOptions(1, 5))
 			@filterSelect("sets", T(ctx).Sets(), filterValue(f.Sets), append([]filterOption{{"1", T(ctx).NoSets()}}, numberOptions(2, 5)...))

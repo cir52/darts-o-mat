@@ -6,6 +6,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/aroundtheclock"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/tournament"
 )
@@ -70,6 +71,16 @@ func (f AroundTheClockFilter) Match(r game.Rules) bool {
 	return ok && f.Bull.matches(rules.Bull) && f.MultiplierSkips.matches(rules.MultiplierSkips)
 }
 
+// CricketFilter narrows down the settings of cricket.
+type CricketFilter struct {
+	Variant cricket.Variant // 0 for any
+}
+
+func (f CricketFilter) Match(r game.Rules) bool {
+	rules, ok := r.(*cricket.Settings)
+	return ok && (f.Variant == 0 || rules.Variant == f.Variant)
+}
+
 // rulesFilters read the filter of a mode's settings from the query, one per mode.
 var rulesFilters = map[game.Mode]func(url.Values) RulesFilter{
 	game.ModeX01: func(q url.Values) RulesFilter {
@@ -85,6 +96,14 @@ var rulesFilters = map[game.Mode]func(url.Values) RulesFilter{
 	},
 	game.ModeAroundTheClock: func(q url.Values) RulesFilter {
 		return AroundTheClockFilter{Bull: choiceFrom(q.Get("bull")), MultiplierSkips: choiceFrom(q.Get("multiplier_skips"))}
+	},
+	game.ModeCricket: func(q url.Values) RulesFilter {
+		var f CricketFilter
+		var v cricket.Variant
+		if v.UnmarshalText([]byte(q.Get("variant"))) == nil {
+			f.Variant = v
+		}
+		return f
 	},
 }
 
@@ -135,10 +154,10 @@ func (f LobbyFilter) Apply(lobbies []OpenLobby) []OpenLobby {
 
 // LobbyFilterFromQuery reads the filter from the query of a request: format, mode and the
 // settings of the mode (see rulesFilters: start_score and out_mode for x01, bull and
-// multiplier_skips for around_the_clock, yes or no), legs, sets, bull_off and board_only
-// (yes or no), and form=yes for about the own strength. The settings of a mode count only
-// with the mode, as the form shows them only then. A value that means nothing is left out
-// rather than refused, so an old link still shows a list.
+// multiplier_skips for around_the_clock, yes or no, variant for cricket), legs, sets,
+// bull_off and board_only (yes or no), and form=yes for about the own strength. The
+// settings of a mode count only with the mode, as the form shows them only then. A value
+// that means nothing is left out rather than refused, so an old link still shows a list.
 func LobbyFilterFromQuery(q url.Values) LobbyFilter {
 	var f LobbyFilter
 	switch format := q.Get("format"); tournament.Format(format) {

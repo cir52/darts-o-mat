@@ -1,14 +1,19 @@
 package view
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/sj14/darts-o-mat/internal/common/dartboard"
 	"github.com/sj14/darts-o-mat/internal/common/i18n"
 	"github.com/sj14/darts-o-mat/internal/server/domain/board"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
+	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 	"github.com/sj14/darts-o-mat/internal/server/service"
 )
 
@@ -103,5 +108,69 @@ func TestLastTurnOf(t *testing.T) {
 	}
 	if _, ok := lastTurnOf(texts, v, 3); ok {
 		t.Error("a player who didn't throw has a last turn")
+	}
+}
+
+func TestCricketMark(t *testing.T) {
+	t.Parallel()
+	for marks, want := range []struct{ lines, circles int }{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {2, 1}} {
+		var b strings.Builder
+		if err := cricketMark(uint8(marks)).Render(context.Background(), &b); err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Count(b.String(), "<line "); got != want.lines {
+			t.Errorf("%d marks draw %d lines, want %d", marks, got, want.lines)
+		}
+		if got := strings.Count(b.String(), "<circle "); got != want.circles {
+			t.Errorf("%d marks draw %d circles, want %d", marks, got, want.circles)
+		}
+	}
+}
+
+func TestCricketDartsWithoutMarksMiss(t *testing.T) {
+	t.Parallel()
+	scored := throw.Dart{ID: 1, PlayerID: 1, Number: 20, Segment: dartboard.Triple}
+	dead := throw.Dart{ID: 2, PlayerID: 1, Number: 20, Segment: dartboard.Single}
+	st := cricket.State{Turns: []cricket.Turn{{PlayerID: 1, Darts: []throw.Dart{scored, dead}, Marks: []int{3, 0}}}}
+	v := service.GameView{State: st}
+	v.Game.Mode = game.ModeCricket
+	v.Darts = []throw.Dart{scored}
+
+	if hit, counted := targetResult(v, scored); !hit || !counted {
+		t.Errorf("a dart with marks = %v, %v; want a counted hit", hit, counted)
+	}
+	if hit, counted := targetResult(v, dead); hit || !counted {
+		t.Errorf("a dart without marks = %v, %v; want a counted miss", hit, counted)
+	}
+	if got := soundKind(v); got != "triple" {
+		t.Errorf("sound of a triple that scored = %q, want triple", got)
+	}
+	v.Darts = []throw.Dart{scored, dead}
+	if got := soundKind(v); got != "miss" {
+		t.Errorf("sound of a dart without marks = %q, want miss", got)
+	}
+}
+
+func TestLastTurnOfCricket(t *testing.T) {
+	t.Parallel()
+	st := cricket.State{Variant: cricket.VariantStandard, Turns: []cricket.Turn{
+		{PlayerID: 1, Marks: []int{3, 1, 0}, Points: 40, Complete: true},
+		{PlayerID: 2, Marks: []int{2, 0, 0}, Complete: true},
+		{PlayerID: 1, Marks: []int{1}}, // still throwing
+	}}
+	v := service.GameView{State: st}
+	texts := textsOf(i18n.English)
+
+	if got, ok := lastTurnOf(texts, v, 1); !ok || got.Value != "4 marks · 40" {
+		t.Errorf("player 1 = %+v, %v; want marks and points", got, ok)
+	}
+	if got, ok := lastTurnOf(texts, v, 2); !ok || got.Value != "2 marks" {
+		t.Errorf("player 2 = %+v, %v; want only the marks", got, ok)
+	}
+	// In Cut-Throat the points went to the opponents.
+	st.Variant = cricket.VariantCutThroat
+	v = service.GameView{State: st}
+	if got, ok := lastTurnOf(texts, v, 1); !ok || got.Value != "4 marks" {
+		t.Errorf("cut-throat: player 1 = %+v, %v; want only the marks", got, ok)
 	}
 }
