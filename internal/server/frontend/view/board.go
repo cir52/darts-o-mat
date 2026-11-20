@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/sj14/darts-o-mat/internal/common/dartboard"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 	"github.com/sj14/darts-o-mat/internal/server/service"
@@ -106,20 +107,43 @@ func targetPath(target uint8) string {
 	return ringPath(dartboard.BullRadius, dartboard.DoubleOuterRadius, center-dartboard.SegmentAngle/2, center+dartboard.SegmentAngle/2)
 }
 
-// dimPath covers the playing area except the target field (with fill-rule evenodd).
-func dimPath(target uint8) string {
+// dimPath covers the playing area except the target fields (with fill-rule evenodd).
+func dimPath(targets []uint8) string {
 	r := float64(dartboard.DoubleOuterRadius)
-	circle := fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
-	return circle + targetPath(target)
+	path := fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
+	for _, target := range targets {
+		path += targetPath(target)
+	}
+	return path
 }
 
-// boardTargetOf returns the field to highlight on the board, 0 for none: the current
-// player's target in around the clock, not while bulling off.
-func boardTargetOf(v service.GameView, p progress) uint8 {
+// boardTargetsOf returns the fields to highlight on the board, none while bulling off or
+// after the game: the current player's target in around the clock, the numbers that
+// aren't dead yet in cricket (the same for every player).
+func boardTargetsOf(v service.GameView, p progress) []uint8 {
 	if !p.running() || p.BullingOff {
-		return 0
+		return nil
 	}
-	return currentTarget(v)
+	if st, ok := v.State.(cricket.State); ok {
+		var open []uint8
+		for k, target := range cricket.Targets {
+			if !st.Dead(k) {
+				open = append(open, target)
+			}
+		}
+		return open
+	}
+	if target := currentTarget(v); target != 0 {
+		return []uint8{target}
+	}
+	return nil
+}
+
+// isBoardTarget reports whether the number printed around the board is one of the targets.
+func isBoardTarget(targets []uint8, number string) bool {
+	return slices.ContainsFunc(targets, func(target uint8) bool {
+		return strconv.Itoa(int(target)) == number
+	})
 }
 
 // fieldCenter is where a dart entered by hand is drawn: in the middle of its field.

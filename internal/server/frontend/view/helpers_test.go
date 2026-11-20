@@ -2,6 +2,7 @@ package view
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -176,5 +177,29 @@ func TestLastTurnOfCricket(t *testing.T) {
 	v = service.GameView{State: st}
 	if got, ok := lastTurnOf(texts, v, 1); !ok || got.Value != "4 marks" {
 		t.Errorf("cut-throat: player 1 = %+v, %v; want only the marks", got, ok)
+	}
+}
+
+func TestBoardTargetsOfCricket(t *testing.T) {
+	t.Parallel()
+	// Both players close the 20, only player 1 the 19: the 20 is dead, the 19 still open.
+	darts := []throw.Dart{
+		{ID: 1, PlayerID: 1, Number: 20, Segment: dartboard.Triple},
+		{ID: 2, PlayerID: 1, Number: 19, Segment: dartboard.Triple},
+		{ID: 3, PlayerID: 1, Number: 0, Segment: dartboard.Miss},
+		{ID: 4, PlayerID: 2, Number: 20, Segment: dartboard.Triple},
+	}
+	st, err := cricket.Play(cricket.Settings{Variant: cricket.VariantStandard}, []int64{1, 2}, darts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := service.GameView{State: st}
+
+	want := []uint8{19, 18, 17, 16, 15, dartboard.BullNumber}
+	if got := boardTargetsOf(v, progressOf(v)); !slices.Equal(got, want) {
+		t.Errorf("targets = %v, want %v", got, want)
+	}
+	if !isBoardTarget(want, "19") || isBoardTarget(want, "20") {
+		t.Error("isBoardTarget doesn't match the numbers printed around the board")
 	}
 }
