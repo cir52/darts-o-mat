@@ -41,6 +41,15 @@ type State struct {
 	Players []PlayerState `json:"players"`
 	// Turns lists every turn in the order they were thrown; the last one may still be in progress.
 	Turns []Turn `json:"turns"`
+	// hits is whether each dart of the turns hit the target, by the dart's ID (see Hit).
+	hits map[int64]bool
+}
+
+// Hit reports whether the dart with the ID hit the player's target; ok is false for a
+// dart that isn't part of a turn (bulling off).
+func (s State) Hit(dartID int64) (hit, ok bool) {
+	hit, ok = s.hits[dartID]
+	return hit, ok
 }
 
 // Turn is one player's turn of up to three darts.
@@ -75,7 +84,7 @@ func (s State) Player(id int64) (PlayerState, bool) {
 
 // PlayLog replays a game's log of darts and takeouts, see Play.
 func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
-	st := State{Turns: []Turn{}}
+	st := State{Turns: []Turn{}, hits: map[int64]bool{}}
 	for _, id := range playerIDs {
 		st.Players = append(st.Players, PlayerState{PlayerID: id, Target: 1})
 	}
@@ -101,6 +110,7 @@ func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
 		p.Stats.Darts++
 		hit := d.Segment != dartboard.Miss && d.Number == p.Target
 		cur.Darts, cur.Hits = append(cur.Darts, d), append(cur.Hits, hit)
+		st.hits[d.ID] = hit
 		if hit {
 			p.Stats.Hits++
 			p.Target = s.next(p.Target, d.Segment.Multiplier())

@@ -425,3 +425,29 @@ func TestSettings(t *testing.T) {
 		t.Error("unknown variant decodes, want an error")
 	}
 }
+
+func TestHit(t *testing.T) {
+	t.Parallel()
+	// Player 1 closes the 20, hits the 14 and then the 20 again while player 2 has it open.
+	d := []throw.Dart{hit(20, 3), hit(14, 1), hit(20, 1)}
+	for i := range d {
+		d[i].ID = int64(i + 1)
+	}
+	st, err := Play(standard, []int64{1, 2}, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		id      int64
+		hit, ok bool
+	}{
+		{1, true, true},
+		{2, false, true},
+		{3, true, true},   // scores
+		{4, false, false}, // not thrown
+	} {
+		if hit, ok := st.Hit(tt.id); hit != tt.hit || ok != tt.ok {
+			t.Errorf("Hit(%d) = %v, %v; want %v, %v", tt.id, hit, ok, tt.hit, tt.ok)
+		}
+	}
+}

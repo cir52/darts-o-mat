@@ -203,3 +203,28 @@ func TestLegs(t *testing.T) {
 		t.Errorf("best leg = %d darts, want 20", got)
 	}
 }
+
+func TestHit(t *testing.T) {
+	t.Parallel()
+	// Player 1 hits the 1, then misses the 2 by hitting the 3.
+	darts := []throw.Dart{hit(1, 1), hit(3, 1)}
+	for i := range darts {
+		darts[i].ID = int64(i + 1)
+	}
+	st, err := Play(Settings{}, []int64{1, 2}, darts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		id      int64
+		hit, ok bool
+	}{
+		{1, true, true},
+		{2, false, true},
+		{3, false, false}, // not thrown
+	} {
+		if hit, ok := st.Hit(tt.id); hit != tt.hit || ok != tt.ok {
+			t.Errorf("Hit(%d) = %v, %v; want %v, %v", tt.id, hit, ok, tt.hit, tt.ok)
+		}
+	}
+}

@@ -131,7 +131,11 @@ func TestCricketDartsWithoutMarksMiss(t *testing.T) {
 	t.Parallel()
 	scored := throw.Dart{ID: 1, PlayerID: 1, Number: 20, Segment: dartboard.Triple}
 	dead := throw.Dart{ID: 2, PlayerID: 1, Number: 20, Segment: dartboard.Single}
-	st := cricket.State{Turns: []cricket.Turn{{PlayerID: 1, Darts: []throw.Dart{scored, dead}, Marks: []int{3, 0}}}}
+	// Alone in the game, the player's triple closes the 20 and nothing more scores on it.
+	st, err := cricket.Play(cricket.Settings{Variant: cricket.VariantStandard}, []int64{1}, []throw.Dart{scored, dead})
+	if err != nil {
+		t.Fatal(err)
+	}
 	v := service.GameView{State: st}
 	v.Game.Mode = game.ModeCricket
 	v.Darts = []throw.Dart{scored}

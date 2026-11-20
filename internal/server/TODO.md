@@ -6,7 +6,6 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 
 - Instead/Additional of a keyboard, click into the simulated/drawn board.
   - Maybe hide the keypad by default and when you click in the board, it opens or you can click a second time into the board for the position.
-- Rework `view.targetResult` (found 2026-11-20 in the review of the Cricket PR #2, left out as it was there before): it searches every turn of the game for each dart, and `dartClass` asks it for every dart tile and history chip, so a page costs the square of the darts (about 250,000 comparisons at 500 darts) on every dart for every viewer; the loop is there once for Around the Clock and once for Cricket; and "hit" means the target in Around the Clock but a mark in Cricket, so `soundKind` checks the mode again. A map from dart to result, built once per page (or kept in the state), would fix all three.
 
 ## Game modes
 

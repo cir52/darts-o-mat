@@ -99,6 +99,15 @@ type State struct {
 	Players []PlayerState `json:"players"`
 	// Turns lists every turn in the order they were thrown; the last one may still be in progress.
 	Turns []Turn `json:"turns"`
+	// hits is whether each dart of the turns scored a mark, by the dart's ID (see Hit).
+	hits map[int64]bool
+}
+
+// Hit reports whether the dart with the ID scored a mark that counted (see Stats.Marks);
+// ok is false for a dart that isn't part of a turn (bulling off).
+func (s State) Hit(dartID int64) (hit, ok bool) {
+	hit, ok = s.hits[dartID]
+	return hit, ok
 }
 
 // Turn is one player's turn of up to three darts.
@@ -143,7 +152,7 @@ func (s State) Dead(k int) bool {
 
 // PlayLog replays a game's log of darts and takeouts, see Play.
 func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
-	st := State{Variant: s.Variant, Turns: []Turn{}}
+	st := State{Variant: s.Variant, Turns: []Turn{}, hits: map[int64]bool{}}
 	for _, id := range playerIDs {
 		st.Players = append(st.Players, PlayerState{PlayerID: id})
 	}
@@ -171,6 +180,7 @@ func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
 		p.Stats.Darts++
 		p.Stats.Marks += marks
 		cur.Darts, cur.Marks = append(cur.Darts, d), append(cur.Marks, marks)
+		st.hits[d.ID] = marks > 0
 		cur.Points += points
 
 		if winner := st.winner(s.Variant, t); winner >= 0 {

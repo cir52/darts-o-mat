@@ -391,27 +391,18 @@ func hitTarget(v service.GameView, d throw.Dart) bool {
 	return hit
 }
 
+// targetState is the state of a mode in which every dart hits or misses: around the clock
+// (the player's target) and cricket (a mark that counted).
+type targetState interface {
+	Hit(dartID int64) (hit, ok bool)
+}
+
 // targetResult reports for around the clock whether a dart hit the player's target, and
 // for cricket whether it scored a mark; counted is false in other modes and for darts
 // outside the turns (bull-off).
 func targetResult(v service.GameView, d throw.Dart) (hit, counted bool) {
-	switch st := v.State.(type) {
-	case aroundtheclock.State:
-		for _, t := range st.Turns {
-			for i, td := range t.Darts {
-				if td.ID == d.ID {
-					return t.Hits[i], true
-				}
-			}
-		}
-	case cricket.State:
-		for _, t := range st.Turns {
-			for i, td := range t.Darts {
-				if td.ID == d.ID {
-					return t.Marks[i] > 0, true
-				}
-			}
-		}
+	if st, ok := v.State.(targetState); ok {
+		return st.Hit(d.ID)
 	}
 	return false, false
 }
