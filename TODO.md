@@ -8,4 +8,4 @@ Open tasks of the whole project. Tasks of a single part are in its own file:
 
 ## Whole project
 
-- Rate limits beyond failed logins (those are done, see [server → failed logins](internal/server/AGENTS.md#failed-logins)): registering, creating games and tournaments, friend requests, the API in general.
+- Rate limits beyond [failed logins](internal/server/AGENTS.md#failed-logins): registering, creating games and tournaments, friend requests, the API in general.
