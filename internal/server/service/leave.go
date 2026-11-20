@@ -30,7 +30,7 @@ var ErrCantLeave = turn.ErrCantLeave
 //
 // While bulling off, who leaves is out of it (see turn.Turn.Leave).
 func (s *Service) LeaveGame(ctx context.Context, acc account.Account, gameID int64) (GameView, error) {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "LeaveGame")
 	if err != nil {
 		return GameView{}, err
 	}
@@ -117,7 +117,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 // they are removed (the returned view is empty then); once it is running, it ends for everyone (user's decision
 // 2026-10-18): it is aborted with its running games, its finished games stay.
 func (s *Service) LeaveTournament(ctx context.Context, acc account.Account, id int64) (TournamentView, error) {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "LeaveTournament")
 	if err != nil {
 		return TournamentView{}, err
 	}

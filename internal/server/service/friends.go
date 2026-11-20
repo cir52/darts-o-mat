@@ -80,7 +80,7 @@ func (s *Service) RequestFriend(ctx context.Context, acc account.Account, userna
 		return fmt.Errorf("%w: you can't befriend yourself", ErrInvalid)
 	}
 
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "RequestFriend")
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (s *Service) RequestFriend(ctx context.Context, acc account.Account, userna
 // AcceptFriend accepts the friend request the other account sent, ErrNotFound if there is
 // none, ErrTooManyFriends if acc has no room for one more friend.
 func (s *Service) AcceptFriend(ctx context.Context, acc account.Account, otherID int64) error {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "AcceptFriend")
 	if err != nil {
 		return err
 	}

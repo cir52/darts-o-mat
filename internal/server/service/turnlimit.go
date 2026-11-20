@@ -84,7 +84,7 @@ func (s *Service) watchTurn(g game.Game) {
 // while the turn waits for the takeout the darts are taken out instead.
 func (s *Service) endTurn(gameID int64) {
 	ctx := context.Background()
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "endTurn")
 	if err != nil {
 		log.Printf("lock: %v", err)
 		return

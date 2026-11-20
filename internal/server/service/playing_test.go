@@ -80,7 +80,7 @@ func TestOneSeatPerPlayer(t *testing.T) {
 	}
 
 	// A seat the account takes no part in stays hidden: ben waits in his own lobby.
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "test")
 	if err != nil {
 		t.Fatal(err)
 	}

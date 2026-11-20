@@ -373,7 +373,7 @@ func (s *Service) abortGame(ctx context.Context, g *game.Game) error {
 // they start instead of throwing again. Without cameras the darts are only entered by
 // field, e.g. both hit the bull.
 func (s *Service) DecideBullOff(ctx context.Context, acc account.Account, gameID, playerID int64) (GameView, error) {
-	return s.changeGame(ctx, acc, gameID, func(g *game.Game, v GameView) error {
+	return s.changeGame(ctx, "DecideBullOff", acc, gameID, func(g *game.Game, v GameView) error {
 		if !slices.Contains(v.Common().BullOffTie, playerID) {
 			return fmt.Errorf("%w: player %d isn't tied when bulling off", ErrInvalid, playerID)
 		}
@@ -390,7 +390,7 @@ func (s *Service) DecideBullOff(ctx context.Context, acc account.Account, gameID
 // (AddBoardDart), so a position given here is dropped.
 func (s *Service) AddDart(ctx context.Context, acc account.Account, gameID int64, d throw.Dart) (GameView, error) {
 	d.X, d.Y = nil, nil
-	return s.changeGame(ctx, acc, gameID, func(g *game.Game, v GameView) error {
+	return s.changeGame(ctx, "AddDart", acc, gameID, func(g *game.Game, v GameView) error {
 		if cur := v.Common().CurrentPlayerID; cur != nil && !v.IsMine(*cur) {
 			return ErrForbidden
 		}
@@ -419,7 +419,7 @@ func (s *Service) storeDart(ctx context.Context, g *game.Game, v GameView, d thr
 // account's players' (ErrForbidden otherwise). It may be a takeout: then the player
 // waits for it again.
 func (s *Service) UndoDart(ctx context.Context, acc account.Account, gameID int64) (GameView, error) {
-	return s.changeGame(ctx, acc, gameID, func(g *game.Game, v GameView) error {
+	return s.changeGame(ctx, "UndoDart", acc, gameID, func(g *game.Game, v GameView) error {
 		if v.Completed {
 			return ErrCompleted
 		}
@@ -443,7 +443,7 @@ func (s *Service) UndoDart(ctx context.Context, acc account.Account, gameID int6
 // anymore (the replay's error), or if the correction ends a turn at a different dart,
 // so that later darts would count for another player (ErrChangesThrowers).
 func (s *Service) EditDart(ctx context.Context, acc account.Account, gameID, dartID int64, d throw.Dart) (GameView, error) {
-	return s.changeGame(ctx, acc, gameID, func(g *game.Game, v GameView) error {
+	return s.changeGame(ctx, "EditDart", acc, gameID, func(g *game.Game, v GameView) error {
 		if v.Completed {
 			return ErrCompleted
 		}
@@ -480,7 +480,7 @@ func normalizeDart(d *throw.Dart) {
 // matters for games with a board (see game.Game.WaitsForTakeout) and only after darts
 // were thrown in the current turn; otherwise nothing happens.
 func (s *Service) Takeout(ctx context.Context, acc account.Account, gameID int64) (GameView, error) {
-	return s.changeGame(ctx, acc, gameID, func(g *game.Game, v GameView) error {
+	return s.changeGame(ctx, "Takeout", acc, gameID, func(g *game.Game, v GameView) error {
 		return s.storeTakeout(ctx, g, v)
 	})
 }
@@ -494,46 +494,55 @@ func (s *Service) storeTakeout(ctx context.Context, g *game.Game, v GameView) er
 
 // changeGame applies change to a game the account may throw in and tells the game's
 // subscribers. Changes are applied one at a time, so change sees the current darts in
-// v and two darts can't both pass the replay check against the same state.
-func (s *Service) changeGame(ctx context.Context, acc account.Account, gameID int64, change func(g *game.Game, v GameView) error) (GameView, error) {
-	unlock, err := s.lock(ctx)
+// v and two darts can't both pass the replay check against the same state. The name
+// of the operation goes into the log when it holds the lock long.
+func (s *Service) changeGame(ctx context.Context, name string, acc account.Account, gameID int64, change func(g *game.Game, v GameView) error) (GameView, error) {
+	g, err := s.changeLocked(ctx, name, func() (GameView, error) {
+		return s.throwableGame(ctx, acc, gameID)
+	}, change)
 	if err != nil {
 		return GameView{}, err
 	}
-	defer unlock()
-	v, err := s.throwableGame(ctx, acc, gameID)
-	if err != nil {
-		return GameView{}, err
-	}
-	g := v.Game
-	if err := change(&g, v); err != nil {
-		return GameView{}, err
-	}
-	s.notifyGame(g)
 	return s.view(ctx, acc, g)
 }
 
 // changeByCameras is changeGame for what a board's cameras report: it isn't done by an
 // account, so there are no rights to check and the view has nothing of a viewer.
-func (s *Service) changeByCameras(ctx context.Context, gameID int64, change func(g *game.Game, v GameView) error) (GameView, error) {
-	unlock, err := s.lock(ctx)
+func (s *Service) changeByCameras(ctx context.Context, name string, gameID int64, change func(g *game.Game, v GameView) error) (GameView, error) {
+	g, err := s.changeLocked(ctx, name, func() (GameView, error) {
+		g, err := s.store.GetGame(ctx, gameID)
+		if err != nil {
+			return GameView{}, err
+		}
+		return s.build(ctx, g)
+	}, change)
 	if err != nil {
 		return GameView{}, err
+	}
+	return s.build(ctx, g)
+}
+
+// changeLocked loads the game's view, applies change to it and tells the game's
+// subscribers, all under the lock. The caller builds its answer after the lock: it may
+// then show a later change of someone else as well, which is only newer, and every
+// change waits for the lock no longer than needed (with SQLite's one connection the
+// views would wait for the pages that render the change at the same time).
+func (s *Service) changeLocked(ctx context.Context, name string, load func() (GameView, error), change func(g *game.Game, v GameView) error) (game.Game, error) {
+	unlock, err := s.lock(ctx, name)
+	if err != nil {
+		return game.Game{}, err
 	}
 	defer unlock()
-	g, err := s.store.GetGame(ctx, gameID)
+	v, err := load()
 	if err != nil {
-		return GameView{}, err
+		return game.Game{}, err
 	}
-	v, err := s.build(ctx, g)
-	if err != nil {
-		return GameView{}, err
-	}
+	g := v.Game
 	if err := change(&g, v); err != nil {
-		return GameView{}, err
+		return game.Game{}, err
 	}
 	s.notifyGame(g)
-	return s.build(ctx, g)
+	return g, nil
 }
 
 // throwableGame returns the view of the game if the account may enter darts right now.
@@ -695,8 +704,8 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 // lock orders the changes of games and seats: in this process with mu, across the
 // replicas with Options.Lock (the database's: an advisory lock on PostgreSQL), taken in
 // this order so that only one request per replica waits for it. Call unlock when the
-// change is done.
-func (s *Service) lock(ctx context.Context) (unlock func(), err error) {
+// change is done. name is the operation, logged when it holds the lock long.
+func (s *Service) lock(ctx context.Context, name string) (unlock func(), err error) {
 	s.mu.Lock()
 	release, err := s.opts.Lock.Lock(ctx)
 	if err != nil {
@@ -708,7 +717,7 @@ func (s *Service) lock(ctx context.Context) (unlock func(), err error) {
 		release()
 		s.mu.Unlock()
 		if held := time.Since(locked); held > slowLock {
-			log.Printf("held the lock for %v", held)
+			log.Printf("%s held the lock for %v", name, held)
 		}
 	}, nil
 }

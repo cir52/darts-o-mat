@@ -31,7 +31,7 @@ type BoardChoice struct {
 // it broke: from then on they enter their darts by hand, as if they had played without a
 // board from the start (the game stops waiting for takeouts if no one else has a board).
 func (s *Service) UseBoard(ctx context.Context, acc account.Account, gameID int64, boardID *int64) (GameView, error) {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "UseBoard")
 	if err != nil {
 		return GameView{}, err
 	}

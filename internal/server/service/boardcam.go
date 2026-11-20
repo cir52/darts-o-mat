@@ -69,7 +69,7 @@ func (s *Service) AddBoardDart(ctx context.Context, b board.Board, d throw.Dart)
 	if (d.X == nil) != (d.Y == nil) {
 		return GameView{}, fmt.Errorf("%w: give both x and y of the position, or neither", ErrInvalid)
 	}
-	return s.changeByCameras(ctx, v.Game.ID, func(g *game.Game, v GameView) error {
+	return s.changeByCameras(ctx, "AddBoardDart", v.Game.ID, func(g *game.Game, v GameView) error {
 		if v.Common().WaitingForTakeout {
 			if v.PlaysOn(b.ID) {
 				return turn.ErrWaitingForTakeout
@@ -97,7 +97,7 @@ func (s *Service) BoardTakeout(ctx context.Context, b board.Board) (GameView, er
 	if err != nil {
 		return GameView{}, err
 	}
-	return s.changeByCameras(ctx, v.Game.ID, func(g *game.Game, v GameView) error {
+	return s.changeByCameras(ctx, "BoardTakeout", v.Game.ID, func(g *game.Game, v GameView) error {
 		c := v.Common()
 		if c.DartsInTurn == 0 || !v.PlaysOn(b.ID) {
 			return nil

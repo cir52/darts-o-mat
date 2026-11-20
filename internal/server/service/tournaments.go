@@ -113,7 +113,7 @@ func (s *Service) TournamentInvitations(ctx context.Context, acc account.Account
 // player of the match may start it; its players accepted the tournament, so they don't
 // have to accept the game, and throw on the boards they chose for the tournament.
 func (s *Service) StartMatch(ctx context.Context, acc account.Account, id int64, match int) (GameView, error) {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "StartMatch")
 	if err != nil {
 		return GameView{}, err
 	}

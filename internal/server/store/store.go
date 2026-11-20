@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -40,8 +41,19 @@ func NewPostgres(ctx context.Context, dsn string) (*Store, error) {
 }
 
 // NewSQLite opens the SQLite database at dsn, e.g. "file:darts-o-mat.db".
+//
+// It turns on the write-ahead log with synchronous=NORMAL: with the rollback journal
+// every commit waits for several fsyncs (about 90 ms per dart on a disk, held under the
+// lock of every change), with these about 0.2 ms. A crash of the computer (not of the
+// program) may lose the last commits then, but the database stays intact. Pragmas given
+// in dsn come after these, so they win.
 func NewSQLite(ctx context.Context, dsn string) (*Store, error) {
-	sqldb, err := sql.Open("sqlite", dsn)
+	path, query, _ := strings.Cut(dsn, "?")
+	pragmas := "_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	if query != "" {
+		pragmas += "&" + query
+	}
+	sqldb, err := sql.Open("sqlite", path+"?"+pragmas)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ var (
 // stay as they were (user's decision 2026-10-18: the others' statistics don't change). It
 // is refused while the guest is in a running game or tournament (ErrGuestBusy).
 func (s *Service) DeleteGuest(ctx context.Context, acc account.Account, playerID int64) error {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "DeleteGuest")
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *Service) DeleteAccount(ctx context.Context, acc account.Account, passwo
 
 // deleteAccount deletes the account as DeleteAccount describes, once it is allowed.
 func (s *Service) deleteAccount(ctx context.Context, a account.Account) error {
-	unlock, err := s.lock(ctx)
+	unlock, err := s.lock(ctx, "deleteAccount")
 	if err != nil {
 		return err
 	}
