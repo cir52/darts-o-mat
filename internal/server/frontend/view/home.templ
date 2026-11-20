@@ -250,7 +250,7 @@ templ newGame(m HomeModel) {
 			<div class="grid gap-3 sm:grid-cols-2">
 				@modeTile(game.ModeX01, m.Mode, "X01", T(ctx).X01Description(), "501")
 				@modeTile(game.ModeAroundTheClock, m.Mode, T(ctx).AroundTheClock(), T(ctx).AroundTheClockDescription(), "1→20")
-				@modeTile(game.ModeCricket, m.Mode, T(ctx).Cricket(), T(ctx).CricketDescription(), "15→B")
+				@modeTile(game.ModeCricket, m.Mode, T(ctx).Cricket(), T(ctx).CricketDescription(), "15–20")
 			</div>
 			switch m.Mode {
 				case game.ModeX01:

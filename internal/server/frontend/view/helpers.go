@@ -758,7 +758,8 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 				continue
 			}
 			r := lastTurn{Darts: tr.Darts, Value: t.NMarks(sum(tr.Marks))}
-			if tr.Points > 0 {
+			// In Cut-Throat the points went to the opponents: not the player's score.
+			if tr.Points > 0 && st.Variant == cricket.VariantStandard {
 				r.Value += " · " + strconv.Itoa(tr.Points)
 			}
 			return r, true

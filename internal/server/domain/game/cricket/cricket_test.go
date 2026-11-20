@@ -190,9 +190,8 @@ func TestCatchUpWins(t *testing.T) {
 
 func TestCutThroatWinsWhenNotAhead(t *testing.T) {
 	t.Parallel()
-	// Player 2 scores 20 for player 1 first; player 1 closes everything with 20 against 0.
-	// Then player 2 is fed points until player 1 is no longer ahead, and player 1's next
-	// dart (a miss) wins.
+	// Player 2 scores 20 for player 1 first; player 1 closes everything with 20 against 0
+	// and goes on scoring for player 2, until the dart that puts player 1 behind wins.
 	d := darts(
 		misses(), []throw.Dart{hit(20, 3), hit(20, 1), miss},
 		closeAll[0], misses(),
@@ -207,6 +206,59 @@ func TestCutThroatWinsWhenNotAhead(t *testing.T) {
 	}
 	if !st.GameOver || *st.WinnerID != 1 {
 		t.Errorf("over=%v points=%d/%d, want player 1 to win", st.GameOver, st.Players[0].Points, st.Players[1].Points)
+	}
+}
+
+func TestCutThroatWinsOnAnOpponentsDart(t *testing.T) {
+	t.Parallel()
+	// Player 1 closes everything with 60 points, more than player 2's 0. Player 3 then
+	// scores for player 2 until player 1 isn't ahead of anyone: player 1 wins on
+	// player 3's dart.
+	d := darts(
+		misses(), []throw.Dart{hit(20, 3), hit(20, 3), miss}, []throw.Dart{hit(20, 3), miss, miss},
+		closeAll[0], misses(), misses(),
+		closeAll[1], misses(), misses(),
+		closeAll[2], []throw.Dart{miss}, misses(), []throw.Dart{hit(19, 3), hit(19, 3), hit(19, 1)},
+	)
+	st, err := Play(cutThroat, []int64{1, 2, 3}, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	points := []int{st.Players[0].Points, st.Players[1].Points, st.Players[2].Points}
+	if !st.GameOver || *st.WinnerID != 1 || !slices.Equal(points, []int{60, 76, 60}) {
+		t.Errorf("over=%v points=%v, want player 1 to win with 60 against 76 and 60", st.GameOver, points)
+	}
+	if last := st.Turns[len(st.Turns)-1]; last.PlayerID != 3 || !last.Complete {
+		t.Errorf("last turn by player %d (complete %v), want player 3's, complete", last.PlayerID, last.Complete)
+	}
+}
+
+func TestLeavingDecidesTheLeg(t *testing.T) {
+	t.Parallel()
+	// Player 3 leads with 60, player 1 has closed everything with 0. When player 3
+	// leaves, player 1 is level with player 2 and wins without another dart.
+	log := turn.Log{
+		PlayerIDs: []int64{1, 2, 3},
+		Entries: darts(
+			misses(), misses(), []throw.Dart{hit(20, 3), hit(20, 3), miss},
+			closeAll[0], misses(), misses(),
+			closeAll[1], misses(), misses(),
+			closeAll[2], []throw.Dart{miss},
+			[]throw.Dart{{Leave: true, PlayerID: 3}},
+		),
+	}
+	st, err := PlayLog(standard, []int64{1, 2, 3}, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.GameOver || *st.WinnerID != 1 {
+		t.Fatalf("over=%v, want player 1 to win when player 3 leaves", st.GameOver)
+	}
+	if got := st.Players[0].BestLeg; got != 12 {
+		t.Errorf("best leg = %d darts, want 12 (no dart after the leaving)", got)
+	}
+	if got := len(st.Times.Legs); got != 1 {
+		t.Errorf("%d leg times, want 1", got)
 	}
 }
 

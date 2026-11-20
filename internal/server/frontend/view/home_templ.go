@@ -1612,7 +1612,7 @@ func newGame(m HomeModel) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = modeTile(game.ModeCricket, m.Mode, T(ctx).Cricket(), T(ctx).CricketDescription(), "15→B").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = modeTile(game.ModeCricket, m.Mode, T(ctx).Cricket(), T(ctx).CricketDescription(), "15–20").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

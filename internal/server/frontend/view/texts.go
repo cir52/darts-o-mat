@@ -431,6 +431,8 @@ type Texts interface {
 	// Marks is the column of the marks gained in a turn of cricket.
 	Marks() string
 	NMarks(n int) string
+	// PointsGiven heads the points of a turn of cricket's cut-throat, which go to the opponents.
+	PointsGiven() string
 
 	// Tournaments.
 	InvitedToTournament() string

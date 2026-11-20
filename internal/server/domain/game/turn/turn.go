@@ -94,6 +94,16 @@ func (l Log) Replay(t *Turn, dart func(i int, d throw.Dart) error) error {
 	span := func(from, to int) Span {
 		return Span{Start: l.Entries[from].CreatedAt, End: l.Entries[to].CreatedAt}
 	}
+	// endLeg notes the times of the leg (set, leg) that entry i ended, and of its set if
+	// that is over too.
+	endLeg := func(i, set, leg int) {
+		t.Times.Legs = append(t.Times.Legs, LegTime{Set: set, Leg: leg, Span: span(legFrom, i)})
+		legFrom = -1
+		if t.setWinner != nil || t.over {
+			t.Times.Sets = append(t.Times.Sets, span(setFrom, i))
+			setFrom = -1
+		}
+	}
 	for i, d := range l.Entries {
 		if d.IsDart() {
 			if t.Times.Game.Start.IsZero() {
@@ -108,8 +118,12 @@ func (l Log) Replay(t *Turn, dart func(i int, d throw.Dart) error) error {
 		switch {
 		case d.Leave:
 			t.Throwers[i] = -1
+			set, leg, legs := t.Set, t.Leg, t.legsWon()
 			if err := t.Leave(slices.Index(l.PlayerIDs, d.PlayerID)); err != nil {
 				return fmt.Errorf("entry %d: %w", i+1, err)
+			}
+			if t.legsWon() > legs { // leaving decided the leg, see OnLeave
+				endLeg(i, set, leg)
 			}
 			continue
 		case d.Skip:
@@ -149,12 +163,7 @@ func (l Log) Replay(t *Turn, dart func(i int, d throw.Dart) error) error {
 			return err
 		}
 		if t.legWinner != nil || t.over {
-			t.Times.Legs = append(t.Times.Legs, LegTime{Set: set, Leg: leg, Span: span(legFrom, i)})
-			legFrom = -1
-			if t.setWinner != nil || t.over {
-				t.Times.Sets = append(t.Times.Sets, span(setFrom, i))
-				setFrom = -1
-			}
+			endLeg(i, set, leg)
 		}
 	}
 	return nil
@@ -180,6 +189,11 @@ type Turn struct {
 	Records []Record
 	// OnLegStart is called when the next leg starts, so the game mode resets the scores.
 	OnLegStart func()
+	// OnLeave is called after a player left the game (not while bulling off, nor while a
+	// won leg waits for the takeout) and returns the player who wins the leg now, -1 for
+	// nobody. Only a mode in which the others' points decide the leg needs it (cricket);
+	// in the others nobody wins without a dart of their own.
+	OnLeave func() int
 	// Throwers is the index of the player who threw each log entry, -1 for the others.
 	Throwers []int
 	// Times is when the game and its finished legs and sets were played (see Replay).
@@ -212,29 +226,51 @@ func (t *Turn) End() {
 	t.pass(nextPlayer)
 }
 
-// Finish counts the dart the current player finished with: they win the leg, the set
-// once they have won enough legs, and the game once they have won enough sets.
+// Finish counts the dart the current player finished with: they win the leg, see win.
 func (t *Turn) Finish() {
+	t.FinishFor(t.Player)
+}
+
+// FinishFor counts a dart of the current player with which player i wins the leg, see
+// win: in cricket's cut-throat the points a dart gives to one opponent can make another
+// one the winner.
+func (t *Turn) FinishFor(i int) {
 	t.count()
-	r := &t.Records[t.Player]
-	if r.BestLeg == 0 || t.legDarts[t.Player] < r.BestLeg {
-		r.BestLeg = t.legDarts[t.Player]
+	t.win(i)
+}
+
+// win lets player i win the leg, the set once they have won enough legs, and the game
+// once they have won enough sets.
+func (t *Turn) win(i int) {
+	r := &t.Records[i]
+	if r.BestLeg == 0 || t.legDarts[i] < r.BestLeg {
+		r.BestLeg = t.legDarts[i]
 	}
 	r.Legs++
 	r.SetLegs++
-	winner := t.Player
-	t.legWinner = &winner
+	winner := i
+	t.legWinner, t.setWinner = &winner, nil
 	if r.SetLegs < t.legs {
 		t.pass(nextLeg)
 		return
 	}
 	r.Sets++
 	if r.Sets >= t.sets {
+		t.Player = i // the winner, once the game is over
 		t.legWinner, t.over = nil, true
 		return
 	}
 	t.setWinner = &winner
 	t.pass(nextSet)
+}
+
+// legsWon is how many legs the players have won so far, together.
+func (t *Turn) legsWon() int {
+	n := 0
+	for _, r := range t.Records {
+		n += r.Legs
+	}
+	return n
 }
 
 // count counts a dart of the current player.
@@ -307,7 +343,8 @@ func (t *Turn) nextActive(i int) int {
 // sets they won stay theirs; a starter who left still counts for the order in which the
 // legs and sets are started (the next one after them starts). If they were up, their turn is over (the darts they threw
 // count); while the turn waits for the takeout, the next step moves on from them; while
-// bulling off they are out of it (see bullOff.out). It is refused after the game is over
+// bulling off they are out of it (see bullOff.out). If that makes another player the
+// winner of the leg (OnLeave), they win it. It is refused after the game is over
 // and when fewer than MinPlayers would be left (ErrTooFewLeft: the game ends then, which
 // is up to the caller). This is the one place of the rule: the service tries the leaving
 // and aborts the game on ErrTooFewLeft.
@@ -327,10 +364,17 @@ func (t *Turn) Leave(i int) error {
 		return ErrTooFewLeft
 	}
 	t.Records[i].Left = true
-	switch {
-	case t.BullingOff():
+	if t.BullingOff() {
 		t.bullOffNext(t.bull.out(i, t.Player))
-	case t.Player == i && !t.Waiting():
+		return nil
+	}
+	if t.OnLeave != nil && !t.legOver() {
+		if winner := t.OnLeave(); winner >= 0 {
+			t.win(winner)
+			return nil
+		}
+	}
+	if t.Player == i && !t.Waiting() {
 		t.do(nextPlayer)
 	}
 	return nil
@@ -385,6 +429,11 @@ func (t *Turn) Takeout() {
 // Waiting reports whether the turn is over but the darts weren't pulled out yet.
 func (t *Turn) Waiting() bool {
 	return t.waiting != nothing
+}
+
+// legOver reports whether a won leg waits for the takeout before the next one starts.
+func (t *Turn) legOver() bool {
+	return t.waiting == nextLeg || t.waiting == nextSet
 }
 
 func (t *Turn) Over() bool {

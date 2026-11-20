@@ -153,7 +153,7 @@ func TestCricketDartsWithoutMarksMiss(t *testing.T) {
 
 func TestLastTurnOfCricket(t *testing.T) {
 	t.Parallel()
-	st := cricket.State{Turns: []cricket.Turn{
+	st := cricket.State{Variant: cricket.VariantStandard, Turns: []cricket.Turn{
 		{PlayerID: 1, Marks: []int{3, 1, 0}, Points: 40, Complete: true},
 		{PlayerID: 2, Marks: []int{2, 0, 0}, Complete: true},
 		{PlayerID: 1, Marks: []int{1}}, // still throwing
@@ -166,5 +166,11 @@ func TestLastTurnOfCricket(t *testing.T) {
 	}
 	if got, ok := lastTurnOf(texts, v, 2); !ok || got.Value != "2 marks" {
 		t.Errorf("player 2 = %+v, %v; want only the marks", got, ok)
+	}
+	// In Cut-Throat the points went to the opponents.
+	st.Variant = cricket.VariantCutThroat
+	v = service.GameView{State: st}
+	if got, ok := lastTurnOf(texts, v, 1); !ok || got.Value != "4 marks" {
+		t.Errorf("cut-throat: player 1 = %+v, %v; want only the marks", got, ok)
 	}
 }

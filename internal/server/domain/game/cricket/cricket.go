@@ -114,8 +114,8 @@ type Turn struct {
 }
 
 // Play replays the darts of a game and returns the resulting state.
-// A player who has closed every number and is ahead on points (Standard), or not behind
-// (Cut-Throat), wins the leg, see package turn.
+// A player who has closed every number and has no fewer points than any opponent
+// (Standard), or no more (Cut-Throat), wins the leg, see package turn.
 func Play(s Settings, playerIDs []int64, darts []throw.Dart) (State, error) {
 	return PlayLog(s, playerIDs, turn.Log{Entries: darts})
 }
@@ -154,6 +154,7 @@ func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
 			st.Players[i].Marks, st.Players[i].Points = [NumTargets]uint8{}, 0
 		}
 	}
+	t.OnLeave = func() int { return st.winner(s.Variant, t) }
 	var cur *Turn // the turn being thrown
 
 	err := log.Replay(t, func(i int, d throw.Dart) error {
@@ -172,9 +173,9 @@ func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
 		cur.Darts, cur.Marks = append(cur.Darts, d), append(cur.Marks, marks)
 		cur.Points += points
 
-		if st.wins(s.Variant, t) {
+		if winner := st.winner(s.Variant, t); winner >= 0 {
 			cur.Complete = true
-			t.Finish()
+			t.FinishFor(winner)
 			return nil
 		}
 		t.Advance()
@@ -188,9 +189,7 @@ func PlayLog(s Settings, playerIDs []int64, log turn.Log) (State, error) {
 	for i := range st.Players {
 		p := &st.Players[i]
 		p.Record = t.Records[i]
-		if p.Stats.Darts > 0 {
-			p.Stats.MPR = float64(p.Stats.Marks) * turn.DartsPerTurn / float64(p.Stats.Darts)
-		}
+		p.Stats.MPR = MPR(p.Stats.Marks, p.Stats.Darts)
 	}
 
 	st.State = t.State(playerIDs)
@@ -237,16 +236,41 @@ func (st *State) throw(v Variant, t *turn.Turn, d throw.Dart) (marks, points int
 	return marks + extra, value
 }
 
-// wins reports whether the player who is up wins the leg: they have closed every number
-// and no opponent still in the game is ahead of them, i.e. has more points (Standard) or
-// fewer (Cut-Throat). Equal points are enough.
-func (st *State) wins(v Variant, t *turn.Turn) bool {
-	p := st.Players[t.Player]
-	if !p.Closed() {
+// MPR is the marks per round of three darts, 0 without darts.
+func MPR(marks, darts int) float64 {
+	if darts == 0 {
+		return 0
+	}
+	return float64(marks) * turn.DartsPerTurn / float64(darts)
+}
+
+// winner returns the index of the player who wins the leg now, -1 if nobody does. Not
+// only the player who is up can: in Cut-Throat their points can put an opponent who has
+// closed everything level, and when a player leaves, whoever was behind them may be
+// ahead now. The player who is up comes first, so with equal points whoever has just
+// closed everything wins.
+func (st *State) winner(v Variant, t *turn.Turn) int {
+	if st.wins(v, t, t.Player) {
+		return t.Player
+	}
+	for i := range st.Players {
+		if i != t.Player && st.wins(v, t, i) {
+			return i
+		}
+	}
+	return -1
+}
+
+// wins reports whether player i wins the leg: they are still in the game, have closed
+// every number, and no opponent still in the game is ahead of them, i.e. has more points
+// (Standard) or fewer (Cut-Throat). Equal points are enough.
+func (st *State) wins(v Variant, t *turn.Turn, i int) bool {
+	p := st.Players[i]
+	if t.Records[i].Left || !p.Closed() {
 		return false
 	}
-	for i, o := range st.Players {
-		if i == t.Player || t.Records[i].Left {
+	for k, o := range st.Players {
+		if k == i || t.Records[k].Left {
 			continue
 		}
 		if v == VariantCutThroat && o.Points < p.Points || v == VariantStandard && o.Points > p.Points {

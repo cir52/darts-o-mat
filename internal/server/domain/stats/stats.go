@@ -228,9 +228,7 @@ func (s *AroundTheClock) add(p Result) {
 func (s *Cricket) add(p Result) {
 	s.Darts += p.Darts
 	s.Marks += p.Marks
-	if s.Darts > 0 {
-		s.MPR = float64(s.Marks) * 3 / float64(s.Darts)
-	}
+	s.MPR = cricket.MPR(s.Marks, s.Darts)
 }
 
 // FormGames is how many of a player's most recent completed games of a mode their form is

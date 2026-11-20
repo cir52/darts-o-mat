@@ -610,6 +610,7 @@ func (textsDE) Games() string          { return "Spiele" }
 func (textsDE) DartsHits() string      { return "Darts / Treffer" }
 func (textsDE) DartsMarks() string     { return "Darts / Marks" }
 func (textsDE) NMarks(n int) string    { return strconv.Itoa(n) + " " + plural(n, "Mark", "Marks") }
+func (textsDE) PointsGiven() string    { return "Verteilte Punkte" }
 
 func (textsDE) InvitedToTournament() string {
 	return "Du bist zu diesem Turnier eingeladen."

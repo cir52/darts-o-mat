@@ -944,7 +944,10 @@ templ cricketMark(marks uint8) {
 }
 
 // cricketHistory lists the turns, newest first; dartLink colors the darts that scored marks.
+// In Cut-Throat a turn's points went to the opponents, so they are headed as such and not
+// highlighted like a good score.
 templ cricketHistory(v service.GameView, st cricket.State) {
+	{{ cutThroat := st.Variant == cricket.VariantCutThroat }}
 	@historyPanel() {
 		<thead class="text-left text-xs uppercase tracking-wider text-white/50">
 			<tr>
@@ -952,19 +955,25 @@ templ cricketHistory(v service.GameView, st cricket.State) {
 				<th class="py-2 font-semibold">{ T(ctx).Player() }</th>
 				<th class="py-2 font-semibold">{ T(ctx).Darts() }</th>
 				<th class="py-2 text-right font-semibold">{ T(ctx).Marks() }</th>
-				<th class="py-2 text-right font-semibold">{ T(ctx).Points() }</th>
+				<th class="py-2 text-right font-semibold">
+					if cutThroat {
+						{ T(ctx).PointsGiven() }
+					} else {
+						{ T(ctx).Points() }
+					}
+				</th>
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-white/5">
 			for i := len(st.Turns) - 1; i >= 0; i-- {
 				@legSeparator(v, st.Turns[i].Set, st.Turns[i].Leg, i == len(st.Turns)-1 || st.Turns[i+1].Set != st.Turns[i].Set || st.Turns[i+1].Leg != st.Turns[i].Leg, 5)
-				@cricketHistoryRow(v, st.Turns[i])
+				@cricketHistoryRow(v, st.Turns[i], cutThroat)
 			}
 		</tbody>
 	}
 }
 
-templ cricketHistoryRow(v service.GameView, t cricket.Turn) {
+templ cricketHistoryRow(v service.GameView, t cricket.Turn, cutThroat bool) {
 	<tr>
 		<td class="py-2 text-white/50">{ strconv.Itoa(t.Round) }</td>
 		<td class="py-2 font-semibold">{ playerName(ctx, v, t.PlayerID) }</td>
@@ -973,7 +982,7 @@ templ cricketHistoryRow(v service.GameView, t cricket.Turn) {
 		</td>
 		<td class="py-2 text-right">{ strconv.Itoa(sum(t.Marks)) }</td>
 		<td class="py-2 text-right">
-			<span class={ templ.KV("font-number text-lg font-extrabold text-amber-300", t.Points > 0) }>{ strconv.Itoa(t.Points) }</span>
+			<span class={ templ.KV("font-number text-lg font-extrabold text-amber-300", t.Points > 0 && !cutThroat) }>{ strconv.Itoa(t.Points) }</span>
 		</td>
 	</tr>
 }

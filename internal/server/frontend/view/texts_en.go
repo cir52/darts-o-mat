@@ -631,6 +631,7 @@ func (textsEN) DartsMarks() string     { return "Darts / marks" }
 func (textsEN) MPR() string            { return "MPR" }
 func (textsEN) Marks() string          { return "Marks" }
 func (textsEN) NMarks(n int) string    { return strconv.Itoa(n) + " " + plural(n, "mark", "marks") }
+func (textsEN) PointsGiven() string    { return "Points given" }
 
 func (textsEN) InvitedToTournament() string {
 	return "You're invited to this tournament."
