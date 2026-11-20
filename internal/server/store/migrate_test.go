@@ -96,6 +96,26 @@ func TestSQLiteMigrationsMatchModels(t *testing.T) {
 		Column("expires_at").Exec(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := fromModels.NewCreateIndex().Model((*throw.Dart)(nil)).Index("darts_game_id").
+		Column("game_id").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fromModels.NewCreateIndex().Model((*game.Participant)(nil)).Index("game_players_board_id").
+		Column("board_id").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fromModels.NewCreateIndex().Model((*game.Participant)(nil)).Index("game_players_player_id").
+		Column("player_id").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fromModels.NewCreateIndex().Model((*stats.Result)(nil)).Index("game_stats_player_id").
+		Column("player_id").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fromModels.NewCreateIndex().Model((*player.Rating)(nil)).Index("ratings_rated_id_rater_id_game_id").
+		Column("rated_id", "rater_id", "game_id").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := fromModels.NewCreateIndex().Model((*game.Game)(nil)).Index("games_rematch_of").
 		Column("rematch_of").Unique().Exec(ctx); err != nil {
 		t.Fatal(err)

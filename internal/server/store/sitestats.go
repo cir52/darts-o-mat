@@ -74,13 +74,16 @@ func (store *Store) SiteStats(ctx context.Context, now time.Time) (site.Stats, e
 		return s, err
 	}
 
+	// The darts of the recent games, found by the index darts_game_id: what this reads
+	// grows with the games, not with all darts ever thrown.
 	d := &s.Darts
 	err = store.db.NewSelect().Model((*throw.Dart)(nil)).
 		ColumnExpr("COUNT(*)").
-		ColumnExpr("COUNT(x)").
-		ColumnExpr("COUNT(CASE WHEN created_at > ? THEN 1 END)", recent).
-		Where("NOT takeout").Where("NOT leave").Where("NOT skip").
-		Scan(ctx, &d.Total, &d.Camera, &d.Recent)
+		ColumnExpr("COUNT(dart.x)").
+		Join("JOIN games ON games.id = dart.game_id").
+		Where("games.started_at > ?", recent).
+		Where("NOT dart.takeout").Where("NOT dart.leave").Where("NOT dart.skip").
+		Scan(ctx, &d.Recent, &d.Camera)
 	if err != nil {
 		return s, err
 	}

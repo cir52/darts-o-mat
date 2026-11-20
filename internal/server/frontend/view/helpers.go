@@ -193,6 +193,16 @@ func orDash(ok bool, value string) string {
 	return value
 }
 
+// countWithShare returns the count and its share of the total, "120 (38%)", or only the
+// count while the total is 0.
+func countWithShare(ctx context.Context, count, total int) string {
+	if total == 0 {
+		return strconv.Itoa(count)
+	}
+	share := float64(count) / float64(total)
+	return strconv.Itoa(count) + " (" + T(ctx).Percent(share) + ")"
+}
+
 // playerLine is a player's main value (rest, target) and second key figure, as the
 // player list shows them.
 type playerLine struct {

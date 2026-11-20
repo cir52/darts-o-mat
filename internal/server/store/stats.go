@@ -45,15 +45,20 @@ func (store *Store) ListRecentResults(ctx context.Context, playerIDs []int64, mo
 }
 
 // ListPositions returns where the cameras saw the player's most recent darts, at most
-// limit of them; with a mode only those of games of that mode.
+// limit of them; with a mode only those of games of that mode. It finds them through the
+// player's games (indexes game_players_player_id and darts_game_id), so it doesn't read
+// all darts ever thrown, nor needs an index of its own on the largest table.
 func (store *Store) ListPositions(ctx context.Context, playerID int64, mode game.Mode, limit int64) ([]dartboard.Point, error) {
 	var darts []throw.Dart
-	q := store.db.NewSelect().Model(&darts).Column("x", "y").
-		Where("player_id = ?", playerID).Where("x IS NOT NULL").Where("y IS NOT NULL")
+	played := store.db.NewSelect().Model((*game.Participant)(nil)).Column("participant.game_id").
+		Where("participant.player_id = ?", playerID)
 	if mode != "" {
-		q = q.Where("game_id IN (SELECT id FROM games WHERE mode = ?)", mode)
+		played = played.Join("JOIN games ON games.id = participant.game_id").Where("games.mode = ?", mode)
 	}
-	err := q.Order("id DESC").Limit(limit).Scan(ctx)
+	err := store.db.NewSelect().Model(&darts).Column("x", "y").
+		Where("dart.game_id IN (?)", played).
+		Where("dart.player_id = ?", playerID).Where("dart.x IS NOT NULL").Where("dart.y IS NOT NULL").
+		Order("dart.id DESC").Limit(limit).Scan(ctx)
 	points := make([]dartboard.Point, len(darts))
 	for i, d := range darts {
 		points[i] = dartboard.Point{X: *d.X, Y: *d.Y}

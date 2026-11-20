@@ -152,11 +152,11 @@ templ Admin(user string, m AdminModel) {
 templ adminStats(s site.Stats) {
 	@panel("") {
 		@sectionTitle(T(ctx).SiteStatsTitle())
-		<p class={ hintClass }>{ T(ctx).SiteStatsHint() }</p>
+		<p class={ hintClass }>{ T(ctx).SiteStatsHint(site.RecentDays) }</p>
 		<div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
 			@statTile(strconv.Itoa(s.Accounts.Total), T(ctx).AccountsTitle())
 			@statTile(strconv.Itoa(s.Games.Completed), T(ctx).Games())
-			@statTile(strconv.Itoa(s.Darts.Total), T(ctx).Darts())
+			@statTile(strconv.Itoa(s.Darts.Recent), T(ctx).RecentDarts(site.RecentDays))
 			@statTile(strconv.Itoa(s.Boards.Total), T(ctx).NavBoards())
 		</div>
 		<div class="mt-4 grid gap-x-6 md:grid-cols-2">
@@ -177,8 +177,7 @@ templ adminStats(s site.Stats) {
 				@statRow(T(ctx).CompletedOfMode(T(ctx).AroundTheClock()), strconv.Itoa(s.Games.CompletedByMode[game.ModeAroundTheClock]))
 				@statRow(T(ctx).CompletedOfMode(T(ctx).Cricket()), strconv.Itoa(s.Games.CompletedByMode[game.ModeCricket]))
 				@statRow(T(ctx).RunningCompletedTournaments(), strconv.Itoa(s.Tournaments.Running)+" / "+strconv.Itoa(s.Tournaments.Completed))
-				@statRow(T(ctx).CameraDarts(), strconv.Itoa(s.Darts.Camera))
-				@statRow(T(ctx).RecentDarts(site.RecentDays), strconv.Itoa(s.Darts.Recent))
+				@statRow(T(ctx).CameraDarts(), countWithShare(ctx, s.Darts.Camera, s.Darts.Recent))
 			</dl>
 		</div>
 	}

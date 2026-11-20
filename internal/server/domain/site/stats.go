@@ -45,11 +45,12 @@ type TournamentStats struct {
 	Completed int
 }
 
-// DartStats counts the darts thrown in games, without takeouts and other log entries.
+// DartStats counts the darts of the games started in the last RecentDays days, also
+// running and aborted ones, without takeouts and other log entries. Only recent ones, so
+// counting them doesn't read the whole table of darts.
 type DartStats struct {
-	Total  int
-	Camera int // detected by a camera, i.e. with a position
-	Recent int // thrown in the last RecentDays days
+	Recent int
+	Camera int // of Recent, detected by a camera, i.e. with a position
 }
 
 // BoardStats counts the boards of the accounts.

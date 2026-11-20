@@ -116,8 +116,8 @@ func (textsEN) RegistrationIsClosed() string {
 	return "Registration is closed: nobody can create a new account."
 }
 func (textsEN) SiteStatsTitle() string { return "Statistics" }
-func (textsEN) SiteStatsHint() string {
-	return "Counted from what this server stores. Games count once they are completed."
+func (textsEN) SiteStatsHint(days int) string {
+	return "Counted from what this server stores. Games count once they are completed. Darts count in the games started in the last " + strconv.Itoa(days) + " days, also running and aborted ones."
 }
 func (textsEN) ActiveAccounts(days int) string {
 	return "Accounts active in the last " + strconv.Itoa(days) + " days"
@@ -137,9 +137,9 @@ func (textsEN) CompletedGames(days int) string {
 func (textsEN) AbortedGames() string                { return "Aborted games" }
 func (textsEN) CompletedOfMode(mode string) string  { return "Completed games: " + mode }
 func (textsEN) RunningCompletedTournaments() string { return "Tournaments running / completed" }
-func (textsEN) CameraDarts() string                 { return "Darts detected by a camera" }
+func (textsEN) CameraDarts() string                 { return "Of them detected by a camera" }
 func (textsEN) RecentDarts(days int) string {
-	return "Darts in the last " + strconv.Itoa(days) + " days"
+	return "Darts, " + strconv.Itoa(days) + " days"
 }
 func (textsEN) AccountsTitle() string { return "Accounts" }
 func (textsEN) AccountsHint(limit int) string {

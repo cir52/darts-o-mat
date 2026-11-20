@@ -75,8 +75,9 @@ func testSiteStats(t *testing.T, st *Store) {
 
 	x, y := 1.0, 2.0
 	insert(&throw.Dart{GameID: 2, PlayerID: anna.PlayerID, Number: 20, Segment: 1, CreatedAt: yesterday})
-	insert(&throw.Dart{GameID: 2, PlayerID: anna.PlayerID, Number: 20, Segment: 1, X: &x, Y: &y, CreatedAt: lastMonth})
+	insert(&throw.Dart{GameID: 2, PlayerID: anna.PlayerID, Number: 20, Segment: 1, X: &x, Y: &y, CreatedAt: yesterday})
 	insert(&throw.Dart{GameID: 2, PlayerID: anna.PlayerID, Takeout: true, CreatedAt: yesterday})
+	insert(&throw.Dart{GameID: 4, PlayerID: anna.PlayerID, Number: 20, Segment: 1, X: &x, Y: &y, CreatedAt: lastMonth}) // a game started before
 
 	boards := []board.Board{{AccountID: anna.ID, Name: "a", LastUsedAt: &yesterday}, {AccountID: anna.ID, Name: "b", LastUsedAt: &lastMonth}, {AccountID: ben.ID, Name: "c"}}
 	for i := range boards {
@@ -97,7 +98,7 @@ func testSiteStats(t *testing.T, st *Store) {
 		Guests:      1,
 		Games:       site.GameStats{Running: 1, Completed: 3, Aborted: 1, CompletedRecent: 2, CompletedByMode: map[game.Mode]int{game.ModeX01: 2, game.ModeCricket: 1}},
 		Tournaments: site.TournamentStats{Running: 1, Completed: 1},
-		Darts:       site.DartStats{Total: 2, Camera: 1, Recent: 1},
+		Darts:       site.DartStats{Recent: 2, Camera: 1},
 		Boards:      site.BoardStats{Total: 3, Camera: 1, UsedRecent: 1},
 	}
 	if !reflect.DeepEqual(got, want) {

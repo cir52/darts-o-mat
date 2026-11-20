@@ -128,7 +128,7 @@ type Texts interface {
 	// the server's start options. TurnCaptchaOn and TurnCaptchaOff are its button.
 	// The numbers about the server on the admin page; days is the period of the recent ones.
 	SiteStatsTitle() string
-	SiteStatsHint() string
+	SiteStatsHint(days int) string
 	ActiveAccounts(days int) string
 	NewAccounts(days int) string
 	DisabledAccounts() string

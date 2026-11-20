@@ -277,12 +277,19 @@ func (store *Store) ListGamesWithDartsSince(ctx context.Context, accountID, play
 	mine := store.db.NewSelect().Model((*game.Participant)(nil)).ColumnExpr("participant.game_id").
 		Join("JOIN players AS p ON p.id = participant.player_id").
 		Where("p.id = ? OR p.guest_of = ?", playerID, accountID)
-	recent := store.db.NewSelect().Model((*throw.Dart)(nil)).Column("game_id").Where("created_at > ?", since)
 	return store.scanGames(ctx, store.db.NewSelect().
 		Where("completed_at IS NULL").
 		Where("aborted_at IS NULL").
 		Where("id IN (?)", mine).
-		Where("id IN (?)", recent))
+		Where("EXISTS (?)", store.dartSince(since)))
+}
+
+// dartSince is the subquery for EXISTS that the game (the outer query's "game") had a dart
+// since the time. It looks only at that game's darts, by the index darts_game_id, instead of
+// reading all darts ever thrown.
+func (store *Store) dartSince(since time.Time) *bun.SelectQuery {
+	return store.db.NewSelect().Model((*throw.Dart)(nil)).ColumnExpr("1").
+		Where("dart.game_id = game.id").Where("dart.created_at > ?", since)
 }
 
 // StartGame stores when the game started and its throwing order (g.Participants).
@@ -381,9 +388,8 @@ func (store *Store) ListOpenGames(ctx context.Context) ([]game.Game, error) {
 // ListTimedGames returns the games with a time limit for turns that aren't aborted and
 // started or had a dart since the time.
 func (store *Store) ListTimedGames(ctx context.Context, since time.Time) ([]game.Game, error) {
-	recent := store.db.NewSelect().Model((*throw.Dart)(nil)).Column("game_id").Where("created_at > ?", since)
 	return store.scanGames(ctx, store.db.NewSelect().
 		Where("turn_seconds > 0").
 		Where("aborted_at IS NULL").
-		Where("started_at > ? OR id IN (?)", since, recent))
+		Where("started_at > ? OR EXISTS (?)", since, store.dartSince(since)))
 }
