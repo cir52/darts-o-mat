@@ -29,6 +29,11 @@ const migrationLock = 0x6461727473 // "darts"
 // run the same migration twice: the second waits and then finds nothing to do. The lock
 // belongs to the connection, so it is gone when the process dies. SQLite is one file in
 // one process.
+//
+// Once they start, the migrations run to the end even if ctx is cancelled (SIGTERM while
+// the server starts): Bun commits a migration and only then records it in bun_migrations,
+// so a stop between the two would leave a change that ran but isn't recorded, and every
+// later start would fail running it again. Waiting for the lock stays cancellable.
 func migrateSchema(ctx context.Context, db *bun.DB) error {
 	dir := "migrations/sqlite"
 	if db.Dialect().Name() == dialect.PG {
@@ -44,6 +49,7 @@ func migrateSchema(ctx context.Context, db *bun.DB) error {
 		// Closing only returns the connection to the pool, which keeps the lock.
 		defer conn.ExecContext(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock(?)", migrationLock)
 	}
+	ctx = context.WithoutCancel(ctx)
 	files, err := fs.Sub(migrationFiles, dir)
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"os"
 	"slices"
 	"strings"
@@ -144,6 +145,39 @@ func sqliteSchema(t *testing.T, db *bun.DB) string {
 		b.WriteString(strings.Join(indexes, ""))
 	}
 	return b.String()
+}
+
+// A cancelled context doesn't stop the migrations halfway (a stop while the server starts):
+// all of them run and are recorded, so the next start finds nothing to do.
+func TestMigrationsIgnoreCancel(t *testing.T) {
+	t.Parallel()
+	sqldb, err := sql.Open("sqlite", "file:"+t.Name()+"?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqldb.SetMaxOpenConns(1)
+	t.Cleanup(func() { sqldb.Close() })
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := migrateSchema(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	migrations := migrate.NewMigrations()
+	files, err := fs.Sub(migrationFiles, "migrations/sqlite")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := migrations.Discover(files); err != nil {
+		t.Fatal(err)
+	}
+	applied, err := migrate.NewMigrator(db, migrations).AppliedMigrations(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := len(migrations.Sorted()); len(applied) != want {
+		t.Errorf("%d migrations recorded, want %d", len(applied), want)
+	}
 }
 
 // The PostgreSQL migrations give the schema of the structs: Bun's AutoMigrator finds nothing
