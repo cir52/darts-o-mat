@@ -336,7 +336,7 @@ func (s *Service) Game(ctx context.Context, acc account.Account, id int64) (Game
 	if err != nil {
 		return GameView{}, err
 	}
-	return s.view(ctx, acc, g)
+	return s.viewGame(ctx, acc, g)
 }
 
 // ListGames returns the most recent games with a player of the account, newest first.
@@ -508,7 +508,7 @@ func (s *Service) changeGame(ctx context.Context, name string, acc account.Accou
 	if err != nil {
 		return GameView{}, err
 	}
-	return s.view(ctx, acc, g)
+	return s.viewGame(ctx, acc, g)
 }
 
 // changeByCameras is changeGame for what a board's cameras report: it isn't done by an
@@ -693,9 +693,6 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 			v.Ratings[r.RatedID] = r.Up
 		}
 	}
-	if err := s.setRematch(ctx, &v); err != nil {
-		return GameView{}, err
-	}
 	if v.Invited || (v.CanThrow && !v.Common().GameOver) {
 		if v.Boards, err = s.boardChoices(ctx, acc, g); err != nil {
 			return GameView{}, err
@@ -705,6 +702,19 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 		if v.Choices, err = s.lobbyChoices(ctx, acc, g.PlayerIDs()); err != nil {
 			return GameView{}, err
 		}
+	}
+	return v, nil
+}
+
+// viewGame is view for one game shown on its own (its page, the result of a change): it
+// also looks up the rematch, which costs a query a list of games doesn't need.
+func (s *Service) viewGame(ctx context.Context, acc account.Account, g game.Game) (GameView, error) {
+	v, err := s.view(ctx, acc, g)
+	if err != nil {
+		return GameView{}, err
+	}
+	if err := s.setRematch(ctx, &v); err != nil {
+		return GameView{}, err
 	}
 	return v, nil
 }

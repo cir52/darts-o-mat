@@ -84,7 +84,7 @@ func (s *Service) Rematch(ctx context.Context, acc account.Account, gameID int64
 	if err != nil {
 		return GameView{}, err
 	}
-	s.notify(gameID)
+	s.notifyRematchOf(g.RematchOf)
 	s.notify(g.ID)
 	return s.Game(ctx, acc, g.ID)
 }

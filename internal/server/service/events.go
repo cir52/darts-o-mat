@@ -125,9 +125,22 @@ func (s *Service) notifyTournament(id int64) {
 	s.publish(key(tournamentKey, id))
 }
 
+// notifyRematchOf tells the subscribers of the finished game a lobby is the rematch of
+// (game.Game.RematchOf, nil for any other game) that its page's link to the rematch may
+// have changed: the rematch's seats, or the rematch itself, are gone.
+func (s *Service) notifyRematchOf(gameID *int64) {
+	if gameID != nil {
+		s.notify(*gameID)
+	}
+}
+
 // notifyGame tells the subscribers of the game, and of its tournament, that it changed,
-// and every replica to set the timer for its turn.
+// and every replica to set the timer for its turn. The lobby of a rematch changing also
+// tells the finished game it is the rematch of.
 func (s *Service) notifyGame(g game.Game) {
+	if !g.Started() {
+		s.notifyRematchOf(g.RematchOf)
+	}
 	keys := []string{key(gameKey, g.ID)}
 	if g.TournamentID != nil {
 		keys = append(keys, key(tournamentKey, *g.TournamentID))

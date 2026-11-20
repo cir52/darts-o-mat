@@ -40,10 +40,11 @@ func TournamentLobby(id int64) LobbyRef { return LobbyRef{Tournament: true, ID: 
 type lobby struct {
 	ref LobbyRef
 	game.Lobby
-	seats   []game.Participant // player, answer and board; the game ID only for a game
-	players []player.Player
-	started bool
-	aborted bool
+	seats     []game.Participant // player, answer and board; the game ID only for a game
+	players   []player.Player
+	started   bool
+	aborted   bool
+	rematchOf *int64 // the finished game a game's lobby is the rematch of
 }
 
 func (l lobby) pending(playerID int64) bool {
@@ -122,6 +123,7 @@ func (s *Service) loadLobby(ctx context.Context, ref LobbyRef) (lobby, error) {
 			return lobby{}, err
 		}
 		l.Lobby, l.seats, l.started, l.aborted = g.Lobby, g.Participants, g.Started(), g.Aborted()
+		l.rematchOf = g.RematchOf
 	}
 	var err error
 	if l.players, err = s.store.GetPlayers(ctx, playerIDs(l.seats)); err != nil {
@@ -374,7 +376,7 @@ func (s *Service) Accept(ctx context.Context, acc account.Account, ref LobbyRef,
 		if err != nil {
 			return err
 		}
-		return s.seatsChanged(ctx, ref)
+		return s.seatsChanged(ctx, l)
 	})
 }
 
@@ -477,7 +479,7 @@ func (s *Service) SetSeatBoard(ctx context.Context, acc account.Account, ref Lob
 	if err != nil {
 		return err
 	}
-	s.notifyLobby(ref)
+	s.notifyLobby(l)
 	return nil
 }
 
@@ -503,7 +505,7 @@ func (s *Service) Start(ctx context.Context, acc account.Account, ref LobbyRef) 
 	if err := s.start(ctx, ref); err != nil {
 		return err
 	}
-	s.notifyLobby(ref)
+	s.notifyLobby(l)
 	return nil
 }
 
@@ -519,7 +521,7 @@ func (s *Service) addSeat(ctx context.Context, l lobby, p game.Participant) erro
 	if err != nil {
 		return err
 	}
-	return s.seatsChanged(ctx, l.ref)
+	return s.seatsChanged(ctx, l)
 }
 
 // removeSeat takes a player out of the lobby; one nobody is in anymore is deleted. The
@@ -534,27 +536,28 @@ func (s *Service) removeSeat(ctx context.Context, l lobby, playerID int64) error
 	if err != nil {
 		return err
 	}
-	return s.seatsChanged(ctx, l.ref)
+	return s.seatsChanged(ctx, l)
 }
 
 // seatsChanged starts an open game or tournament whose last seat was just taken (one
-// that isn't open waits for a player to start it) and tells whoever looks at it. The
-// caller holds the lock (s.lock).
-func (s *Service) seatsChanged(ctx context.Context, ref LobbyRef) error {
-	l, err := s.loadLobby(ctx, ref)
+// that isn't open waits for a player to start it) and tells whoever looks at it. l is the
+// lobby as the change found it, still known once nobody is left in it and it is deleted.
+// The caller holds the lock (s.lock).
+func (s *Service) seatsChanged(ctx context.Context, l lobby) error {
+	cur, err := s.loadLobby(ctx, l.ref)
 	if errors.Is(err, store.ErrNotFound) { // nobody is left in it
-		s.notifyLobby(ref)
+		s.notifyLobby(l)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	if l.Open() && !l.started && l.CanStart(l.statuses()) {
-		if err := s.start(ctx, ref); err != nil {
+	if cur.Open() && !cur.started && cur.CanStart(cur.statuses()) {
+		if err := s.start(ctx, l.ref); err != nil {
 			return err
 		}
 	}
-	s.notifyLobby(ref)
+	s.notifyLobby(l)
 	return nil
 }
 
@@ -598,10 +601,11 @@ func (s *Service) startGame(ctx context.Context, gameID int64) error {
 }
 
 // notifyLobby tells whoever looks at the game or tournament that it changed.
-func (s *Service) notifyLobby(ref LobbyRef) {
-	if ref.Tournament {
-		s.notifyTournament(ref.ID)
-	} else {
-		s.notify(ref.ID)
+func (s *Service) notifyLobby(l lobby) {
+	if l.ref.Tournament {
+		s.notifyTournament(l.ref.ID)
+		return
 	}
+	s.notify(l.ref.ID)
+	s.notifyRematchOf(l.rematchOf)
 }

@@ -124,6 +124,88 @@ func TestRematchStartsAtOnce(t *testing.T) {
 	}
 }
 
+// openRematch finishes a game of anna and ben and has anna start its rematch, which ben is
+// invited to. The returned subscription is of the old game, taken afterwards.
+func openRematch(t *testing.T) (s *Service, anna, ben account.Account, oldID, rematchID int64, changes <-chan struct{}) {
+	t.Helper()
+	ctx := context.Background()
+	s = newService(t)
+	anna, ben = register(t, s, "anna"), register(t, s, "ben")
+	befriend(t, s, anna, ben)
+	v, err := createGame(ctx, s, anna, quick(anna.PlayerID), []string{"ben"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := acceptGame(ctx, s, ben, v.Game.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	finish(t, s, v.Game.ID, anna, ben)
+	r, err := s.Rematch(ctx, anna, v.Game.ID)
+	if err != nil || r.Started {
+		t.Fatalf("rematch: started %v, %v; want a lobby", r.Started, err)
+	}
+	if old, _ := s.Game(ctx, ben, v.Game.ID); old.RematchID != r.Game.ID {
+		t.Fatalf("ben sees rematch %d, want %d", old.RematchID, r.Game.ID)
+	}
+	changes, _ = s.Subscribe(v.Game.ID)
+	return s, anna, ben, v.Game.ID, r.Game.ID, changes
+}
+
+// Whoever looks at the old game is told when the seats of its rematch's lobby change, and
+// when the lobby is deleted because everybody left: its link would lead nowhere.
+func TestRematchLobbyChangesNotifyOldGame(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s, anna, ben, oldID, rematchID, changes := openRematch(t)
+	pending := func() bool {
+		select {
+		case <-changes:
+			return true
+		default:
+			return false
+		}
+	}
+
+	if err := s.Decline(ctx, ben, GameLobby(rematchID)); err != nil {
+		t.Fatal(err)
+	}
+	if !pending() {
+		t.Error("the old game wasn't told that ben declined the rematch")
+	}
+	if _, err := s.LeaveGame(ctx, anna, rematchID); err != nil {
+		t.Fatal(err)
+	}
+	if !pending() {
+		t.Error("the old game wasn't told that its rematch is gone")
+	}
+	if old, err := s.Game(ctx, anna, oldID); err != nil || old.RematchID != 0 || !old.CanRematch() {
+		t.Errorf("old game: rematch %d, can rematch %v, %v; want none, true", old.RematchID, old.CanRematch(), err)
+	}
+}
+
+// ben stays invited to the rematch and anna, the only one in it, leaves: the lobby is
+// deleted, so the old game's subscribers are told and ben's page has no link anymore.
+func TestRematchLobbyDeletedNotifiesOldGame(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s, anna, ben, oldID, rematchID, changes := openRematch(t)
+
+	if old, err := s.Game(ctx, ben, oldID); err != nil || old.RematchID != rematchID {
+		t.Fatalf("ben sees rematch %d, %v; want %d while he is invited", old.RematchID, err, rematchID)
+	}
+	if _, err := s.LeaveGame(ctx, anna, rematchID); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-changes:
+	default:
+		t.Error("the old game wasn't told that its rematch is gone")
+	}
+	if old, err := s.Game(ctx, ben, oldID); err != nil || old.RematchID != 0 {
+		t.Errorf("ben sees rematch %d, %v; want none", old.RematchID, err)
+	}
+}
+
 // The matches of a tournament have no rematch.
 func TestRematchNotInTournament(t *testing.T) {
 	t.Parallel()

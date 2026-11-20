@@ -95,7 +95,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 		if err := s.recordQuits(ctx, v.Game.Mode, false, gameID, leaving); err != nil {
 			return GameView{}, err
 		}
-		return s.view(ctx, acc, v.Game)
+		return s.viewGame(ctx, acc, v.Game)
 	case errors.Is(err, turn.ErrCantLeave):
 		return GameView{}, err
 	case err != nil:
@@ -110,7 +110,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 		return GameView{}, err
 	}
 	s.notifyGame(v.Game)
-	return s.view(ctx, acc, v.Game)
+	return s.viewGame(ctx, acc, v.Game)
 }
 
 // LeaveTournament lets an account leave a tournament with all its players. In the lobby
