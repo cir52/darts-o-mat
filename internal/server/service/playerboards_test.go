@@ -49,7 +49,10 @@ func TestPlayersOnTheirOwnBoards(t *testing.T) {
 	if _, err := s.AddBoardDart(ctx, boardA, t20); !errors.Is(err, ErrNotOnBoard) {
 		t.Errorf("anna's board during ben's turn: got %v, want ErrNotOnBoard", err)
 	}
-	if v, _ = s.BoardTakeout(ctx, boardA); len(v.Darts) != 5 {
+	if _, err := s.BoardTakeout(ctx, boardA); err != nil {
+		t.Fatal(err)
+	}
+	if v = gameView(t, s, id); len(v.Darts) != 5 {
 		t.Errorf("takeout of the wrong board changed the log: %d entries, want 5 (3 darts, takeout, dart)", len(v.Darts))
 	}
 	for range 2 {
@@ -57,7 +60,10 @@ func TestPlayersOnTheirOwnBoards(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if v, err = s.BoardTakeout(ctx, boardB); err != nil || v.Common().CurrentPlayerID == nil || *v.Common().CurrentPlayerID != anna.PlayerID {
+	if _, err := s.BoardTakeout(ctx, boardB); err != nil {
+		t.Fatal(err)
+	}
+	if v = gameView(t, s, id); v.Common().CurrentPlayerID == nil || *v.Common().CurrentPlayerID != anna.PlayerID {
 		t.Fatalf("ben's takeout: %v, current %v; want anna up", err, v.Common().CurrentPlayerID)
 	}
 

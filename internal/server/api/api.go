@@ -258,20 +258,34 @@ func (a *API) createBoardToken(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, map[string]string{"token": token}, err)
 }
 
+// boardAnswer is the answer to a board's dart or takeout: the game it went to,
+// {"game": {"id": 7}}.
+type boardAnswer struct {
+	Game struct {
+		ID int64 `json:"id"`
+	} `json:"game"`
+}
+
+func newBoardAnswer(gameID int64) boardAnswer {
+	var a boardAnswer
+	a.Game.ID = gameID
+	return a
+}
+
 // addBoardDart enters a dart detected by the board's cameras into the running game on the board.
 func (a *API) addBoardDart(w http.ResponseWriter, r *http.Request) {
 	var h dartboard.Hit // only what the cameras know, no player or takeout
 	if !decode(w, r, &h) {
 		return
 	}
-	v, err := a.svc.AddBoardDart(r.Context(), auth.Board(r.Context()), throw.FromHit(h))
-	respond(w, http.StatusCreated, v, err)
+	gameID, err := a.svc.AddBoardDart(r.Context(), auth.Board(r.Context()), throw.FromHit(h))
+	respond(w, http.StatusCreated, newBoardAnswer(gameID), err)
 }
 
 // boardTakeout reports that the darts were pulled out of the board.
 func (a *API) boardTakeout(w http.ResponseWriter, r *http.Request) {
-	v, err := a.svc.BoardTakeout(r.Context(), auth.Board(r.Context()))
-	respond(w, http.StatusOK, v, err)
+	gameID, err := a.svc.BoardTakeout(r.Context(), auth.Board(r.Context()))
+	respond(w, http.StatusOK, newBoardAnswer(gameID), err)
 }
 
 // maxWarningsBody is the largest body of setBoardWarnings: MaxWarnings warnings of at most

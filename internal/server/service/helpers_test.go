@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
@@ -13,6 +14,22 @@ import (
 // lobby: begin with the first of its players (the account's own or a guest), add the
 // others, invite the friends, and start it once nobody is waited for. The lobby itself is
 // tested in seats_test.go.
+
+// gameView is the view of a game without a viewer, as the cameras' changes see it: their
+// answer is only the game's id.
+func gameView(t *testing.T, s *Service, gameID int64) GameView {
+	t.Helper()
+	ctx := context.Background()
+	g, err := s.store.GetGame(ctx, gameID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := s.build(ctx, g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
 
 func createGame(ctx context.Context, s *Service, acc account.Account, g game.Game, invite []string) (GameView, error) {
 	if len(g.Participants) == 0 {

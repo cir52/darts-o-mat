@@ -54,22 +54,18 @@ func (s *Service) AuthenticateBoard(ctx context.Context, token string) (board.Bo
 }
 
 // AddBoardDart enters a dart detected by the board's cameras into the running game on
-// the board, with the position the cameras saw it at. While the game waits for the
-// takeout, a dart on the board of the player whose turn is over doesn't count: it was
-// thrown after a bust or after the third dart without pulling the darts out
-// (turn.ErrWaitingForTakeout, as for darts entered by hand). A dart on another board
-// means the next player started there: the takeout is entered first, and the dart is
-// theirs. A board only counts the darts of the turns of players who throw on it: a dart
-// of another board is refused (ErrNotOnBoard).
-func (s *Service) AddBoardDart(ctx context.Context, b board.Board, d throw.Dart) (GameView, error) {
-	v, err := s.activeGame(ctx, b)
-	if err != nil {
-		return GameView{}, err
-	}
+// the board, with the position the cameras saw it at, and returns the game's id. While
+// the game waits for the takeout, a dart on the board of the player whose turn is over
+// doesn't count: it was thrown after a bust or after the third dart without pulling the
+// darts out (turn.ErrWaitingForTakeout, as for darts entered by hand). A dart on another
+// board means the next player started there: the takeout is entered first, and the dart
+// is theirs. A board only counts the darts of the turns of players who throw on it: a
+// dart of another board is refused (ErrNotOnBoard).
+func (s *Service) AddBoardDart(ctx context.Context, b board.Board, d throw.Dart) (int64, error) {
 	if (d.X == nil) != (d.Y == nil) {
-		return GameView{}, fmt.Errorf("%w: give both x and y of the position, or neither", ErrInvalid)
+		return 0, fmt.Errorf("%w: give both x and y of the position, or neither", ErrInvalid)
 	}
-	return s.changeByCameras(ctx, "AddBoardDart", v.Game.ID, func(g *game.Game, v GameView) error {
+	return s.changeByCameras(ctx, "AddBoardDart", b, func(g *game.Game, v GameView) error {
 		if v.Common().WaitingForTakeout {
 			if v.PlaysOn(b.ID) {
 				return turn.ErrWaitingForTakeout
@@ -89,15 +85,12 @@ func (s *Service) AddBoardDart(ctx context.Context, b board.Board, d throw.Dart)
 	})
 }
 
-// BoardTakeout handles darts being pulled out of the board. If the current turn isn't
-// complete then, the missing darts didn't stick (bounced off or missed the board):
-// they are entered as misses, so the next player can throw.
-func (s *Service) BoardTakeout(ctx context.Context, b board.Board) (GameView, error) {
-	v, err := s.activeGame(ctx, b)
-	if err != nil {
-		return GameView{}, err
-	}
-	return s.changeByCameras(ctx, "BoardTakeout", v.Game.ID, func(g *game.Game, v GameView) error {
+// BoardTakeout handles darts being pulled out of the board and returns the id of the
+// running game on the board. If the current turn isn't complete then, the missing darts
+// didn't stick (bounced off or missed the board): they are entered as misses, so the
+// next player can throw.
+func (s *Service) BoardTakeout(ctx context.Context, b board.Board) (int64, error) {
+	return s.changeByCameras(ctx, "BoardTakeout", b, func(g *game.Game, v GameView) error {
 		c := v.Common()
 		if c.DartsInTurn == 0 || !v.PlaysOn(b.ID) {
 			return nil

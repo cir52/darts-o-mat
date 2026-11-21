@@ -525,20 +525,19 @@ func (s *Service) changeGame(ctx context.Context, name string, acc account.Accou
 	return s.viewWithRematch(ctx, acc, g)
 }
 
-// changeByCameras is changeGame for what a board's cameras report: it isn't done by an
-// account, so there are no rights to check and the view has nothing of a viewer.
-func (s *Service) changeByCameras(ctx context.Context, name string, gameID int64, change func(g *game.Game, v GameView) error) (GameView, error) {
+// changeByCameras is changeGame for what a board's cameras report, in the running game
+// on the board (ErrNoActiveGame without one), found under the lock. It isn't done by an
+// account, so there are no rights to check and the view has nothing of a viewer. It
+// returns the game's id: that is all darts-o-cam reads of the answer, so no view is built
+// for it.
+func (s *Service) changeByCameras(ctx context.Context, name string, b board.Board, change func(g *game.Game, v GameView) error) (int64, error) {
 	g, err := s.changeLocked(ctx, name, func() (GameView, error) {
-		g, err := s.store.GetGame(ctx, gameID)
-		if err != nil {
-			return GameView{}, err
-		}
-		return s.build(ctx, g)
+		return s.activeGame(ctx, b)
 	}, change)
 	if err != nil {
-		return GameView{}, err
+		return 0, err
 	}
-	return s.build(ctx, g)
+	return g.ID, nil
 }
 
 // changeLocked loads the game's view, applies change to it and tells the game's
@@ -630,6 +629,8 @@ func (s *Service) build(ctx context.Context, g game.Game) (GameView, error) {
 	if v.Players, err = s.store.GetPlayers(ctx, g.PlayerIDs()); err != nil {
 		return GameView{}, err
 	}
+	// Players on the same board share it: each board is looked up once, nil if it was deleted.
+	boards := map[int64]*board.Board{}
 	for _, p := range g.Participants {
 		if p.BoardID == nil {
 			continue
@@ -637,13 +638,22 @@ func (s *Service) build(ctx context.Context, g game.Game) (GameView, error) {
 		if v.BoardNames == nil {
 			v.BoardNames = map[int64]string{}
 		}
-		if b, err := s.store.GetBoard(ctx, *p.BoardID); err == nil {
-			v.BoardNames[p.PlayerID] = b.Name
-			if len(b.Warnings) > 0 && !slices.ContainsFunc(v.CameraWarnings, func(w board.Board) bool { return w.ID == b.ID }) {
-				v.CameraWarnings = append(v.CameraWarnings, b)
+		b, looked := boards[*p.BoardID]
+		if !looked {
+			found, err := s.store.GetBoard(ctx, *p.BoardID)
+			switch {
+			case err == nil:
+				b = &found
+				if len(found.Warnings) > 0 {
+					v.CameraWarnings = append(v.CameraWarnings, found)
+				}
+			case !errors.Is(err, store.ErrNotFound):
+				return GameView{}, err
 			}
-		} else if !errors.Is(err, store.ErrNotFound) {
-			return GameView{}, err
+			boards[*p.BoardID] = b
+		}
+		if b != nil {
+			v.BoardNames[p.PlayerID] = b.Name
 		}
 	}
 	return v, nil
