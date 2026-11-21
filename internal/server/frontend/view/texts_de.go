@@ -345,6 +345,12 @@ func (textsDE) HitRate() string     { return "Trefferquote" }
 
 func (textsDE) Multiplier() string  { return "Multiplikator" }
 func (textsDE) Double() string      { return "Doppel" }
+func (textsDE) InnerSingle() string { return "Inneres Single" }
+func (textsDE) OuterSingle() string { return "Äußeres Single" }
+func (textsDE) Dartboard() string   { return "Dartscheibe" }
+func (textsDE) EnterDartOnBoard() string {
+	return "Dart eintragen: das getroffene Feld anklicken"
+}
 func (textsDE) Miss() string        { return "Daneben" }
 func (textsDE) Hit() string         { return "Treffer" }
 func (textsDE) OtherNumber() string { return "Andere Zahl eintragen" }

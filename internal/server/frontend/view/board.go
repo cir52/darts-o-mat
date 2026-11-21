@@ -22,9 +22,11 @@ const (
 	boardViewBox = "0 0 456 456"
 )
 
-// boardShape is a field of the drawn board.
+// boardShape is a field of the drawn board: what it looks like, and what a dart in it is.
 type boardShape struct {
 	Path, Fill string
+	Number     uint8
+	Segment    dartboard.Segment
 }
 
 // boardNumber is a number around the board.
@@ -53,7 +55,15 @@ const (
 	boardTarget = "#fbbf24"
 )
 
-var boardShapes, boardNumbers = drawBoard()
+// boardShapes are the 80 fields around the bull (the heatmap draws these), boardFields
+// all 82 with the bull and the bullseye on top, which a dart can be entered in.
+var (
+	boardShapes, boardNumbers = drawBoard()
+	boardFields               = append(slices.Clone(boardShapes),
+		boardShape{Path: circlePath(dartboard.BullRadius), Fill: boardGreen, Number: dartboard.BullNumber, Segment: dartboard.Bull},
+		boardShape{Path: circlePath(dartboard.BullseyeRadius), Fill: boardRed, Number: dartboard.BullNumber, Segment: dartboard.Bullseye},
+	)
+)
 
 // svgX and svgY turn a board position into drawing coordinates.
 func svgX(p dartboard.Point) string { return strconv.FormatFloat(boardCenter+p.X, 'f', 2, 64) }
@@ -74,6 +84,11 @@ func ringPath(r1, r2, a1, a2 float64) string {
 	return b.String()
 }
 
+// circlePath is the outline of a circle around the bull.
+func circlePath(r float64) string {
+	return fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
+}
+
 func drawBoard() ([]boardShape, []boardNumber) {
 	var shapes []boardShape
 	var numbers []boardNumber
@@ -85,10 +100,10 @@ func drawBoard() ([]boardShape, []boardNumber) {
 			single, ring = boardCream, boardGreen
 		}
 		shapes = append(shapes,
-			boardShape{ringPath(dartboard.BullRadius, dartboard.TripleInnerRadius, a1, a2), single},
-			boardShape{ringPath(dartboard.TripleInnerRadius, dartboard.TripleOuterRadius, a1, a2), ring},
-			boardShape{ringPath(dartboard.TripleOuterRadius, dartboard.DoubleInnerRadius, a1, a2), single},
-			boardShape{ringPath(dartboard.DoubleInnerRadius, dartboard.DoubleOuterRadius, a1, a2), ring},
+			boardShape{Path: ringPath(dartboard.BullRadius, dartboard.TripleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Inner},
+			boardShape{Path: ringPath(dartboard.TripleInnerRadius, dartboard.TripleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Triple},
+			boardShape{Path: ringPath(dartboard.TripleOuterRadius, dartboard.DoubleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Outer},
+			boardShape{Path: ringPath(dartboard.DoubleInnerRadius, dartboard.DoubleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Double},
 		)
 		p := dartboard.Polar(197, center)
 		numbers = append(numbers, boardNumber{X: svgX(p), Y: svgY(p), Text: strconv.Itoa(int(n))})
@@ -100,8 +115,7 @@ func drawBoard() ([]boardShape, []boardNumber) {
 // the number, since single, double and triple all count, or the bull.
 func targetPath(target uint8) string {
 	if target == dartboard.BullNumber {
-		r := dartboard.BullRadius
-		return fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
+		return circlePath(dartboard.BullRadius)
 	}
 	center := float64(dartboard.SegmentIndex(target)) * dartboard.SegmentAngle
 	return ringPath(dartboard.BullRadius, dartboard.DoubleOuterRadius, center-dartboard.SegmentAngle/2, center+dartboard.SegmentAngle/2)
@@ -109,8 +123,7 @@ func targetPath(target uint8) string {
 
 // dimPath covers the playing area except the target fields (with fill-rule evenodd).
 func dimPath(targets []uint8) string {
-	r := float64(dartboard.DoubleOuterRadius)
-	path := fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
+	path := circlePath(dartboard.DoubleOuterRadius)
 	for _, target := range targets {
 		path += targetPath(target)
 	}
