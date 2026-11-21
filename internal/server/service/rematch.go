@@ -17,9 +17,10 @@ var ErrNoRematch = fmt.Errorf("%w: this game can't have a rematch", ErrInvalid)
 
 // CanRematch reports whether the viewer may start a rematch of the game (Rematch): it is
 // over and wasn't aborted, isn't a match of a tournament, has no rematch yet, and the
-// viewer played in it to the end.
+// viewer played in it to the end. False for a view that didn't look up the rematch (the
+// views of a list), since it doesn't know.
 func (v GameView) CanRematch() bool {
-	return v.Common().GameOver && !v.Game.Aborted() && v.Game.TournamentID == nil &&
+	return v.rematchKnown && v.Common().GameOver && !v.Game.Aborted() && v.Game.TournamentID == nil &&
 		!v.rematched && len(v.Mine) > 0 && !v.HasLeft && !v.Invited
 }
 
@@ -92,6 +93,7 @@ func (s *Service) Rematch(ctx context.Context, acc account.Account, gameID int64
 // setRematch fills in the rematch of a finished game for the view: RematchID if the
 // viewer takes part in it, and whether there is one at all.
 func (s *Service) setRematch(ctx context.Context, v *GameView) error {
+	v.rematchKnown = true
 	if !v.Common().GameOver || v.Game.TournamentID != nil {
 		return nil
 	}

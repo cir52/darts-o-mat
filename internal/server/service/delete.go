@@ -148,8 +148,9 @@ func (s *Service) leaveEverything(ctx context.Context, a account.Account) error 
 		switch {
 		case g.TournamentID != nil: // left with its tournament below
 		case v.Invited:
-			if err = s.store.RemoveParticipant(ctx, g.ID, a.PlayerID); err == nil {
-				s.notifyGame(g)
+			var l lobby
+			if l, err = s.loadLobby(ctx, GameLobby(g.ID)); err == nil {
+				err = s.removeSeat(ctx, l, a.PlayerID)
 			}
 		default:
 			if _, err = s.leave(ctx, a, v); err != nil {

@@ -36,7 +36,7 @@ func (s *Service) UseBoard(ctx context.Context, acc account.Account, gameID int6
 		return GameView{}, err
 	}
 	defer unlock()
-	v, err := s.Game(ctx, acc, gameID)
+	v, err := s.loadView(ctx, acc, gameID)
 	if err != nil {
 		return GameView{}, err
 	}
@@ -68,7 +68,7 @@ func (s *Service) UseBoard(ctx context.Context, acc account.Account, gameID int6
 		return GameView{}, err
 	}
 	s.notifyGame(g)
-	return s.view(ctx, acc, g)
+	return s.viewWithRematch(ctx, acc, g)
 }
 
 // ErrBoardBusy means the board is in a running game that is only for players with a

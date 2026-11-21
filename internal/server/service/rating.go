@@ -32,7 +32,7 @@ func (v GameView) Rateable() []player.Player {
 // 2026-10-20, to know who one plays with, shown in the list of open games). It replaces
 // the thumb the account gave that player in this game before.
 func (s *Service) RatePlayer(ctx context.Context, acc account.Account, gameID, ratedID int64, up bool) (GameView, error) {
-	v, err := s.Game(ctx, acc, gameID)
+	v, err := s.loadView(ctx, acc, gameID)
 	switch {
 	case err != nil:
 		return GameView{}, err

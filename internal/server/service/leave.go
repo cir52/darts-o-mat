@@ -35,7 +35,7 @@ func (s *Service) LeaveGame(ctx context.Context, acc account.Account, gameID int
 		return GameView{}, err
 	}
 	defer unlock()
-	v, err := s.Game(ctx, acc, gameID)
+	v, err := s.loadView(ctx, acc, gameID)
 	if err != nil {
 		return GameView{}, err
 	}
@@ -66,12 +66,15 @@ func (s *Service) LeaveGame(ctx context.Context, acc account.Account, gameID int
 func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (GameView, error) {
 	gameID := v.Game.ID
 	if !v.Started { // still in the lobby
+		l, err := s.loadLobby(ctx, GameLobby(gameID))
+		if err != nil {
+			return GameView{}, err
+		}
 		for _, id := range v.Mine {
-			if err := s.store.RemoveParticipant(ctx, gameID, id); err != nil {
+			if err := s.removeSeat(ctx, l, id); err != nil {
 				return GameView{}, err
 			}
 		}
-		s.notifyGame(v.Game)
 		return GameView{}, nil
 	}
 
@@ -95,7 +98,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 		if err := s.recordQuits(ctx, v.Game.Mode, false, gameID, leaving); err != nil {
 			return GameView{}, err
 		}
-		return s.view(ctx, acc, v.Game)
+		return s.viewWithRematch(ctx, acc, v.Game)
 	case errors.Is(err, turn.ErrCantLeave):
 		return GameView{}, err
 	case err != nil:
@@ -110,7 +113,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 		return GameView{}, err
 	}
 	s.notifyGame(v.Game)
-	return s.view(ctx, acc, v.Game)
+	return s.viewWithRematch(ctx, acc, v.Game)
 }
 
 // LeaveTournament lets an account leave a tournament with all its players. In the lobby

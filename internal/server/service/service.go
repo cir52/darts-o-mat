@@ -197,10 +197,12 @@ type GameView struct {
 	// their players off it (UseBoard).
 	Boards []BoardChoice `json:"boards,omitempty"`
 	// RematchID is the rematch of the finished game (Rematch) if the viewer takes part in
-	// it, else 0.
+	// it, else 0. Only a view of one game looks it up (Service.Game, viewWithRematch), not
+	// the views of a list.
 	RematchID int64 `json:"rematch_id,omitempty"`
-	// rematched is set once the game has a rematch, with the viewer or without.
-	rematched bool
+	// rematchKnown is set once the rematch was looked up; rematched once the game has a
+	// rematch, with the viewer or without.
+	rematchKnown, rematched bool
 }
 
 // MayEdit reports whether the viewer may correct the entry of the log at index i: it is a
@@ -331,7 +333,19 @@ func (s *Service) invitedPlayers(ctx context.Context, acc account.Account, usern
 	return invited, nil
 }
 
+// Game returns the view of one game for the account, with its rematch: for the game's page
+// and as the answer to a change.
 func (s *Service) Game(ctx context.Context, acc account.Account, id int64) (GameView, error) {
+	g, err := s.store.GetGame(ctx, id)
+	if err != nil {
+		return GameView{}, err
+	}
+	return s.viewWithRematch(ctx, acc, g)
+}
+
+// loadView is Game without the rematch, for the checks before a change under the lock,
+// which don't need it.
+func (s *Service) loadView(ctx context.Context, acc account.Account, id int64) (GameView, error) {
 	g, err := s.store.GetGame(ctx, id)
 	if err != nil {
 		return GameView{}, err
@@ -508,7 +522,7 @@ func (s *Service) changeGame(ctx context.Context, name string, acc account.Accou
 	if err != nil {
 		return GameView{}, err
 	}
-	return s.view(ctx, acc, g)
+	return s.viewWithRematch(ctx, acc, g)
 }
 
 // changeByCameras is changeGame for what a board's cameras report: it isn't done by an
@@ -553,7 +567,7 @@ func (s *Service) changeLocked(ctx context.Context, name string, load func() (Ga
 // throwableGame returns the view of the game if the account may enter darts right now.
 // The caller holds the lock (s.lock).
 func (s *Service) throwableGame(ctx context.Context, acc account.Account, gameID int64) (GameView, error) {
-	v, err := s.Game(ctx, acc, gameID)
+	v, err := s.loadView(ctx, acc, gameID)
 	if err != nil {
 		return GameView{}, err
 	}
@@ -693,9 +707,6 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 			v.Ratings[r.RatedID] = r.Up
 		}
 	}
-	if err := s.setRematch(ctx, &v); err != nil {
-		return GameView{}, err
-	}
 	if v.Invited || (v.CanThrow && !v.Common().GameOver) {
 		if v.Boards, err = s.boardChoices(ctx, acc, g); err != nil {
 			return GameView{}, err
@@ -705,6 +716,19 @@ func (s *Service) view(ctx context.Context, acc account.Account, g game.Game) (G
 		if v.Choices, err = s.lobbyChoices(ctx, acc, g.PlayerIDs()); err != nil {
 			return GameView{}, err
 		}
+	}
+	return v, nil
+}
+
+// viewWithRematch is view for one game shown on its own (Game, the answer to a change): it
+// also looks up the rematch, a query the views of a list don't need.
+func (s *Service) viewWithRematch(ctx context.Context, acc account.Account, g game.Game) (GameView, error) {
+	v, err := s.view(ctx, acc, g)
+	if err != nil {
+		return GameView{}, err
+	}
+	if err := s.setRematch(ctx, &v); err != nil {
+		return GameView{}, err
 	}
 	return v, nil
 }

@@ -44,6 +44,8 @@ type lobby struct {
 	players []player.Player
 	started bool
 	aborted bool
+	// rematchOf is the finished game a game is the rematch of (game.Game.RematchOf).
+	rematchOf *int64
 }
 
 func (l lobby) pending(playerID int64) bool {
@@ -122,6 +124,7 @@ func (s *Service) loadLobby(ctx context.Context, ref LobbyRef) (lobby, error) {
 			return lobby{}, err
 		}
 		l.Lobby, l.seats, l.started, l.aborted = g.Lobby, g.Participants, g.Started(), g.Aborted()
+		l.rematchOf = g.RematchOf
 	}
 	var err error
 	if l.players, err = s.store.GetPlayers(ctx, playerIDs(l.seats)); err != nil {
@@ -522,8 +525,11 @@ func (s *Service) addSeat(ctx context.Context, l lobby, p game.Participant) erro
 	return s.seatsChanged(ctx, l.ref)
 }
 
-// removeSeat takes a player out of the lobby; one nobody is in anymore is deleted. The
-// caller holds the lock (s.lock).
+// removeSeat takes a player out of the lobby; one nobody is in anymore is deleted. It is
+// the one way out of a lobby (leaving, declining, withdrawing, removing a player). Leaving
+// a rematch also tells the finished game it is the rematch of: its page links to the
+// rematch only for who is in it, and offers a new one once the lobby is gone. The caller
+// holds the lock (s.lock).
 func (s *Service) removeSeat(ctx context.Context, l lobby, playerID int64) error {
 	var err error
 	if l.ref.Tournament {
@@ -534,7 +540,13 @@ func (s *Service) removeSeat(ctx context.Context, l lobby, playerID int64) error
 	if err != nil {
 		return err
 	}
-	return s.seatsChanged(ctx, l.ref)
+	if err := s.seatsChanged(ctx, l.ref); err != nil {
+		return err
+	}
+	if l.rematchOf != nil {
+		s.notify(*l.rematchOf)
+	}
+	return nil
 }
 
 // seatsChanged starts an open game or tournament whose last seat was just taken (one

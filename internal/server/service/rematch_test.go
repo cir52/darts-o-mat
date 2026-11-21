@@ -149,6 +149,96 @@ func TestRematchNotInTournament(t *testing.T) {
 	}
 }
 
+// Only the view of one game knows its rematch: the answer to the last dart offers one, the
+// list of games doesn't look it up and so offers none.
+func TestRematchOnlyInTheViewOfOneGame(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := newService(t)
+	anna := register(t, s, "anna")
+	guest, err := s.CreateGuest(ctx, anna, "Gast")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := createGame(ctx, s, anna, quick(anna.PlayerID, guest.ID), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last, err := s.AddDart(ctx, anna, v.Game.ID, d20)
+	if err != nil || !last.Common().GameOver || !last.CanRematch() {
+		t.Fatalf("the last dart: over %v, can rematch %v, %v; want true, true", last.Common().GameOver, last.CanRematch(), err)
+	}
+	r, err := s.Rematch(ctx, anna, v.Game.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	games, err := s.ListGames(ctx, anna, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range games {
+		if g.Game.ID == v.Game.ID && (g.CanRematch() || g.RematchID != 0) {
+			t.Errorf("the list: can rematch %v, rematch %d; want false, 0", g.CanRematch(), g.RematchID)
+		}
+	}
+	if old, _ := s.Game(ctx, anna, v.Game.ID); old.RematchID != r.Game.ID {
+		t.Errorf("the game's page: rematch %d, want %d", old.RematchID, r.Game.ID)
+	}
+}
+
+// Leaving the rematch's lobby tells the old game: its page drops the link for who left, and
+// offers a new rematch once the lobby is gone.
+func TestLeavingTheRematchNotifiesTheOldGame(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := newService(t)
+	anna, ben := register(t, s, "anna"), register(t, s, "ben")
+	befriend(t, s, anna, ben)
+	v, err := createGame(ctx, s, anna, quick(anna.PlayerID), []string{"ben"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := v.Game.ID
+	if _, err := acceptGame(ctx, s, ben, id, nil); err != nil {
+		t.Fatal(err)
+	}
+	finish(t, s, id, anna, ben)
+	r, err := s.Rematch(ctx, anna, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changes, stop := s.Subscribe(id)
+	defer stop()
+	notified := func() bool {
+		select {
+		case <-changes:
+			return true
+		default:
+			return false
+		}
+	}
+
+	if err := s.Decline(ctx, ben, GameLobby(r.Game.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if !notified() {
+		t.Error("ben declined the rematch: the old game wasn't notified")
+	}
+	if old, _ := s.Game(ctx, ben, id); old.RematchID != 0 || old.CanRematch() {
+		t.Errorf("ben after declining: rematch %d, can rematch %v; want 0, false", old.RematchID, old.CanRematch())
+	}
+
+	if _, err := s.LeaveGame(ctx, anna, r.Game.ID); err != nil {
+		t.Fatal(err)
+	}
+	if !notified() {
+		t.Error("anna left the rematch: the old game wasn't notified")
+	}
+	if old, _ := s.Game(ctx, anna, id); old.RematchID != 0 || !old.CanRematch() {
+		t.Errorf("anna after the lobby is gone: rematch %d, can rematch %v; want 0, true", old.RematchID, old.CanRematch())
+	}
+}
+
 // finish ends a game of quick with one dart of the player who is up, one of the accounts'.
 func finish(t *testing.T, s *Service, id int64, accounts ...account.Account) {
 	t.Helper()
