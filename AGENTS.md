@@ -138,6 +138,7 @@ In detail:
 - `tools/linuxpkg`: builds the Linux packages (.deb, .rpm, .tar.gz) of darts-o-cam and of the server, same place
 - `tools/winpkg`: builds darts-o-cam's Windows .zip (.exe with icon), same place
 - `site`: the project page for GitHub Pages (static HTML and a CSS file in the look of the app, English and German in `site/de`; no generator); `make site` puts it with the app's fonts and icons into `dist/site`, `.github/workflows/pages.yml` publishes it. Texts in both languages by hand, keep them in line with the [README](README.md)
+- `release-notes`: the notes of every GitHub release as Markdown, one file per tag (`v0.0.4.md`)
 - `install.sh` (with `install_test.sh`): the one-line installer of darts-o-cam and, with `--server`, of the server, see [camera → installer](internal/cam/AGENTS.md#installer)
 - `Makefile`: `make macapp`, `make linux`, `make windows`, `make apps` (all), `make site`, `make generate` (templ and Tailwind CSS), `make tidy` (`go mod tidy` in both modules), `make clean`; only for these builds, the project page and what spans the modules, everything else is the go command
 - `deploy/helm/darts-o-mat`: Helm chart of the server, see [server → deployment](internal/server/AGENTS.md#deployment)
