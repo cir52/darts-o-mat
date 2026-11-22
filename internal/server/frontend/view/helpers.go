@@ -647,12 +647,27 @@ func entersByHand(v service.GameView, p progress) bool {
 	return mayEnterDart(v, p) && handEntry(v, p)
 }
 
-// boardClickable reports whether a click on a field of the board enters a dart: the viewer
-// may enter the next dart (mayEnterDart) for one of their players, with or without cameras
-// (for a dart the cameras missed), but not while a dart is corrected and not in the
+// correcting reports whether the viewer corrects a dart: the page shows editPanel.
+func correcting(v service.GameView, editing *throw.Dart) bool {
+	return editing != nil && v.CanThrow
+}
+
+// boardAction is where a click on a field of the board posts its dart, "" if the board is
+// only a picture. While a dart is corrected (correcting), the click corrects it like the
+// keypad. Otherwise it enters the next dart if the viewer may (mayEnterDart) for one of
+// their players, with or without cameras (for a dart the cameras missed), but not in the
 // bull-off, where only the bull, the bullseye and a miss count (bullOffPanel).
-func boardClickable(v service.GameView, p progress, editing *throw.Dart) bool {
-	return editing == nil && !p.BullingOff && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID)
+func boardAction(v service.GameView, p progress, editing *throw.Dart) string {
+	switch {
+	case editing != nil:
+		if correcting(v, editing) {
+			return dartEditURL(v, *editing)
+		}
+		return ""
+	case !p.BullingOff && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID):
+		return gameURL(v.Game.ID, "/darts")
+	}
+	return ""
 }
 
 // fieldVals are the form values of a click on a field of the board.

@@ -252,7 +252,7 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 				</div>
 			}
 			<div>
-				@dartboardView(v, p, !keypad, boardClickable(v, p, editing))
+				@dartboardView(v, p, !keypad, boardAction(v, p, editing))
 			</div>
 		</div>
 		switch st := v.State.(type) {
@@ -278,7 +278,7 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 // inputPanel is what the viewer uses to enter or correct darts: the keypad to correct a
 // dart, the bull-off, or the keypad for the dart of the player who is up.
 templ inputPanel(v service.GameView, p progress, editing *throw.Dart, adding, keypad bool) {
-	if editing != nil && v.CanThrow {
+	if correcting(v, editing) {
 		@editPanel(v, *editing)
 	} else if p.BullingOff && p.running() {
 		@bullOffPanel(v, p, keypad)
@@ -413,10 +413,10 @@ templ targetMarks(targets []uint8) {
 }
 
 // dartboardView draws the board with the darts of the current turn and the fields to
-// hit (around the clock, cricket). Where clickable (boardClickable) a click on a field
-// enters the dart like the keypad does; the layers above the fields don't take clicks.
+// hit (around the clock, cricket). With an action (boardAction) a click on a field posts
+// the dart there like the keypad does; the layers above the fields don't take clicks.
 // The board is for mouse and touch: keyboard and screen readers use the keypad.
-templ dartboardView(v service.GameView, p progress, large, clickable bool) {
+templ dartboardView(v service.GameView, p progress, large bool, action string) {
 	{{ targets := boardTargetsOf(v, p) }}
 	<div class={ "mx-auto aspect-square w-full rounded-full shadow-[0_1rem_2rem_rgba(0,0,0,0.6)]", templ.KV("max-w-md", !large), templ.KV("max-w-2xl", large) }>
 		<svg
@@ -424,17 +424,17 @@ templ dartboardView(v service.GameView, p progress, large, clickable bool) {
 			class="h-full w-full"
 			role="img"
 			aria-label={ T(ctx).Dartboard() }
-			if clickable {
+			if action != "" {
 				hx-target="#board"
 				hx-swap="outerHTML"
 			}
 		>
 			<circle cx="228" cy="228" r="226" fill="#0b0c0f" stroke="#2b2e35" stroke-width="3"></circle>
 			for _, f := range boardFields {
-				if clickable {
+				if action != "" {
 					// The hover color fills the field rather than outlining it: the fields
 					// drawn later and the dim layer would cover part of an outline.
-					<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8" class="cursor-pointer hover:fill-amber-400" hx-post={ gameURL(v.Game.ID, "/darts") } hx-vals={ fieldVals(f) }></path>
+					<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8" class="cursor-pointer hover:fill-amber-400" hx-post={ action } hx-vals={ fieldVals(f) }></path>
 				} else {
 					<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8"></path>
 				}

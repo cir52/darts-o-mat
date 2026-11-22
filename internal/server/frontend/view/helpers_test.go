@@ -90,7 +90,7 @@ func TestHandEntry(t *testing.T) {
 	}
 }
 
-func TestBoardClickable(t *testing.T) {
+func TestBoardAction(t *testing.T) {
 	t.Parallel()
 	board := int64(1)
 	const anna, ben = int64(10), int64(20)
@@ -109,23 +109,30 @@ func TestBoardClickable(t *testing.T) {
 	takeout := turnOf(anna)
 	takeout.WaitingForTakeout = true
 
+	watching := v
+	watching.CanThrow = false
+	const enter, correct = "/games/0/darts", "/games/0/darts/7"
+	dart := &throw.Dart{ID: 7}
+
 	tests := []struct {
 		name    string
 		v       service.GameView
 		p       progress
 		editing *throw.Dart
-		want    bool
+		want    string
 	}{
-		{"my turn by hand", v, turnOf(anna), nil, true},
-		{"my turn with cameras", withCamera, turnOf(ben), nil, true},
-		{"another account's turn", v, turnOf(ben), nil, false},
-		{"correcting a dart", v, turnOf(anna), &throw.Dart{}, false},
-		{"bull-off", v, bullOff, nil, false},
-		{"takeout pending", v, takeout, nil, false},
+		{"my turn by hand", v, turnOf(anna), nil, enter},
+		{"my turn with cameras", withCamera, turnOf(ben), nil, enter},
+		{"another account's turn", v, turnOf(ben), nil, ""},
+		{"bull-off", v, bullOff, nil, ""},
+		{"takeout pending", v, takeout, nil, ""},
+		{"correcting a dart", v, turnOf(ben), dart, correct},
+		{"correcting in the bull-off", v, bullOff, dart, correct},
+		{"correcting without being able to throw", watching, turnOf(anna), dart, ""},
 	}
 	for _, tt := range tests {
-		if got := boardClickable(tt.v, tt.p, tt.editing); got != tt.want {
-			t.Errorf("%s: boardClickable = %v, want %v", tt.name, got, tt.want)
+		if got := boardAction(tt.v, tt.p, tt.editing); got != tt.want {
+			t.Errorf("%s: boardAction = %q, want %q", tt.name, got, tt.want)
 		}
 	}
 }

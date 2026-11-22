@@ -1362,7 +1362,7 @@ func scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = dartboardView(v, p, !keypad, boardClickable(v, p, editing)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = dartboardView(v, p, !keypad, boardAction(v, p, editing)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1426,7 +1426,7 @@ func inputPanel(v service.GameView, p progress, editing *throw.Dart, adding, key
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		if editing != nil && v.CanThrow {
+		if correcting(v, editing) {
 			templ_7745c5c3_Err = editPanel(v, *editing).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -2088,10 +2088,10 @@ func targetMarks(targets []uint8) templ.Component {
 }
 
 // dartboardView draws the board with the darts of the current turn and the fields to
-// hit (around the clock, cricket). Where clickable (boardClickable) a click on a field
-// enters the dart like the keypad does; the layers above the fields don't take clicks.
+// hit (around the clock, cricket). With an action (boardAction) a click on a field posts
+// the dart there like the keypad does; the layers above the fields don't take clicks.
 // The board is for mouse and touch: keyboard and screen readers use the keypad.
-func dartboardView(v service.GameView, p progress, large, clickable bool) templ.Component {
+func dartboardView(v service.GameView, p progress, large bool, action string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -2175,7 +2175,7 @@ func dartboardView(v service.GameView, p progress, large, clickable bool) templ.
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if clickable {
+		if action != "" {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, " hx-target=\"#board\" hx-swap=\"outerHTML\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -2186,7 +2186,7 @@ func dartboardView(v service.GameView, p progress, large, clickable bool) templ.
 			return templ_7745c5c3_Err
 		}
 		for _, f := range boardFields {
-			if clickable {
+			if action != "" {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "  <path d=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -2231,9 +2231,9 @@ func dartboardView(v service.GameView, p progress, large, clickable bool) templ.
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var105 string
-				templ_7745c5c3_Var105, templ_7745c5c3_Err = templruntime.NewAttributeExpression(gameURL(v.Game.ID, "/darts")).Resolve(ctx)
+				templ_7745c5c3_Var105, templ_7745c5c3_Err = templruntime.NewAttributeExpression(action).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/game.templ`, Line: 437, Col: 162}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/game.templ`, Line: 437, Col: 140}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var105)
 				if templ_7745c5c3_Err != nil {
@@ -2246,7 +2246,7 @@ func dartboardView(v service.GameView, p progress, large, clickable bool) templ.
 				var templ_7745c5c3_Var106 string
 				templ_7745c5c3_Var106, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fieldVals(f)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/game.templ`, Line: 437, Col: 187}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/game.templ`, Line: 437, Col: 165}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var106)
 				if templ_7745c5c3_Err != nil {
