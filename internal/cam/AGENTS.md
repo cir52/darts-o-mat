@@ -54,6 +54,15 @@ One program for desktop and headless: `darts-o-cam` without arguments starts the
 - Version from the latest `vX.Y.Z` tag, otherwise `0.0.0+git.<describe>` (`VersionSchema: none`); it is also stamped into the binary for the footer (`tools/internal/version.StampFlag`, same for the Windows .exe and the macOS app, see [server → footer](../server/AGENTS.md#footer-and-version)).
 - `tools/linuxpkg` is part of the `tools` module (see [root → structure](../../AGENTS.md#structure)); it finds the project with `go list -m` on the tools module and builds each program in its folder; `go vet`/`go test` of the project skip it (CI vets it with `go -C tools vet ./...`).
 
+### NixOS
+
+`flake.nix` in the root builds both programs (`packages.<system>.darts-o-cam`, the `default`, and `darts-o-mat`; `nix/darts-o-cam.nix`, `nix/darts-o-mat.nix`) and has a NixOS module for each (`nixosModules.darts-o-cam`, `nixosModules.darts-o-mat`; `nix/*-module.nix`); the server's is under [server → deployment](../server/AGENTS.md#deployment). The install script and the .tar.gz don't work on NixOS (no `/lib64` loader without nix-ld, no library search path for `dlopen`).
+
+- `flake.nix` passes both packages what they share: the source (only `go.mod`, `go.sum`, `cmd`, `internal` and the `.desktop` file, `lib.fileset`, so docs and the project page don't rebuild them), the `vendorHash` (the same for both, since `go mod vendor` takes the whole module; update it whenever `go.sum` changes) and the version: the flake's git revision (`self.shortRev`), so the hint about a newer release stays off, Nix updates them.
+- Both are built with `buildGoModule` and Go 1.27 (`go_1_27`, nixos-unstable), `CGO_ENABLED=0`.
+- darts-o-cam's package wraps the binary with `LD_LIBRARY_PATH` to glib, GTK4, WebKitGTK 6.0 and libjpeg-turbo, which glaze and `internal/cam/camera` load with purego; menu entry from `tools/linuxpkg/darts-o-cam.desktop`, icon `favicon.svg` as `hicolor/scalable`.
+- `services.darts-o-cam` runs the same service as `darts-o-cam.service` of the Linux packages (`-ui none`, `DynamicUser`, `SupplementaryGroups=video`, `StateDirectory`), with `port` (8090), `openFirewall` (off, the web interface has no login) and `extraFlags`.
+
 ### Windows package
 
 `tools/winpkg`: `make windows [VERSION=x.y.z]` (or `go -C tools run ./winpkg [-o dir] [-version x.y.z]`) builds per architecture (amd64, arm64) a .zip with `darts-o-cam.exe` and `LICENSE.txt`, ~4 MB.

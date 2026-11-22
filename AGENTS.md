@@ -141,6 +141,7 @@ In detail:
 - `release-notes`: the notes of every GitHub release as Markdown, one file per tag (`v0.0.4.md`)
 - `install.sh` (with `install_test.sh`): the one-line installer of darts-o-cam and, with `--server`, of the server, see [camera → installer](internal/cam/AGENTS.md#installer)
 - `Makefile`: `make macapp`, `make linux`, `make windows`, `make apps` (all), `make site`, `make generate` (templ and Tailwind CSS), `make tidy` (`go mod tidy` in both modules), `make clean`; only for these builds, the project page and what spans the modules, everything else is the go command
+- `flake.nix`, `nix/`: Nix packages and NixOS modules of both programs, see [camera → NixOS](internal/cam/AGENTS.md#nixos) and [server → deployment](internal/server/AGENTS.md#deployment)
 - `deploy/helm/darts-o-mat`: Helm chart of the server, see [server → deployment](internal/server/AGENTS.md#deployment)
 - `.github/workflows`: `ci.yml` (tests, chart lint), `release.yml` (a tag `vX.Y.Z` builds binaries, image, chart and the camera's packages, see [server → deployment](internal/server/AGENTS.md#deployment)), `pages.yml` (project page)
 - `Containerfile`: image of the server, see [server → structure](internal/server/AGENTS.md#structure)

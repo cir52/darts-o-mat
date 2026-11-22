@@ -60,6 +60,24 @@ Options:
 
 Behind a proxy that provides HTTPS, the proxy has to send `X-Forwarded-Proto: https` (Caddy, Traefik and the nginx ingress do; plain nginx needs `proxy_set_header X-Forwarded-Proto $scheme;`), otherwise the login cookie isn't marked as HTTPS-only.
 
+### On NixOS
+
+With the flake of this repository: add `inputs.darts-o-mat.url = "github:sj14/darts-o-mat";` to your system's flake, and to its configuration:
+
+```nix
+imports = [ darts-o-mat.nixosModules.darts-o-mat ];
+services.darts-o-mat = {
+  enable = true;
+  openFirewall = true; # port 3000
+  # Keys as NAME=value lines (DARTS_O_MAT_DSN, DARTS_O_MAT_TURNSTILE_SITE_KEY, ...), outside the Nix store:
+  # environmentFile = "/run/secrets/darts-o-mat";
+  # Every other option, e.g. for PostgreSQL (with DARTS_O_MAT_DSN in the environment file):
+  # extraFlags = [ "-db" "postgres" ];
+};
+```
+
+The games are kept in `/var/lib/darts-o-mat`.
+
 ### In a container
 
 Instead of Go, [Docker](https://www.docker.com) (or Podman) is enough. From the project folder:
