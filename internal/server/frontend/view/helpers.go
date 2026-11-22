@@ -332,6 +332,27 @@ func dartLabel(t Texts, d throw.Dart) string {
 	return d.String()
 }
 
+// fieldLabel names a field of the board for screen readers: "Inner single 20", "Triple 20",
+// "Bull".
+func fieldLabel(t Texts, number uint8, s dartboard.Segment) string {
+	n := strconv.Itoa(int(number))
+	switch s {
+	case dartboard.Bullseye:
+		return t.Bullseye()
+	case dartboard.Bull:
+		return t.Bull()
+	case dartboard.Inner:
+		return t.InnerSingle() + " " + n
+	case dartboard.Outer:
+		return t.OuterSingle() + " " + n
+	case dartboard.Double:
+		return t.Double() + " " + n
+	case dartboard.Triple:
+		return t.Triple() + " " + n
+	}
+	return t.Single() + " " + n
+}
+
 // fitStyle sets what text-fit needs (see fitText): the label's length in characters
 // (at least 3, so short labels don't grow beyond the others) and the largest size.
 func fitStyle(label, maxSize string) templ.SafeCSS {
@@ -633,6 +654,35 @@ func mayEditDart(v service.GameView, d throw.Dart) bool {
 // gives the room to the board.
 func handEntry(v service.GameView, p progress) bool {
 	return p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID) && !v.HasCamera(*p.CurrentPlayerID)
+}
+
+// mayEnterDart reports whether the viewer may enter the next dart: the game runs, they can
+// throw and no takeout is pending.
+func mayEnterDart(v service.GameView, p progress) bool {
+	return p.running() && v.CanThrow && !p.WaitingForTakeout
+}
+
+// entersByHand reports whether the viewer enters the next dart by hand: they may
+// (mayEnterDart) and it is the dart of one of their players without cameras (handEntry).
+func entersByHand(v service.GameView, p progress) bool {
+	return mayEnterDart(v, p) && handEntry(v, p)
+}
+
+// boardClickable reports whether a click on a field of the board enters a dart: the same
+// as for the keypad (entersByHand), but not while a dart is corrected.
+func boardClickable(v service.GameView, p progress, editing *throw.Dart) bool {
+	return editing == nil && entersByHand(v, p)
+}
+
+// fieldID is the id of a field of the board, so htmx restores the focus on it after the
+// board is swapped.
+func fieldID(number uint8, s dartboard.Segment) string {
+	return "field-" + strconv.Itoa(int(number)) + "-" + s.String()
+}
+
+// fieldVals are the form values of a click on a field of the board.
+func fieldVals(number uint8, s dartboard.Segment) string {
+	return `{"number": "` + strconv.Itoa(int(number)) + `", "segment": "` + s.String() + `"}`
 }
 
 // mayAddDart reports whether the viewer may enter a dart that the cameras missed for the

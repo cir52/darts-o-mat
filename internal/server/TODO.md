@@ -4,8 +4,7 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 
 ## Game page
 
-- Instead/Additional of a keyboard, click into the simulated/drawn board.
-  - Maybe hide the keypad by default and when you click in the board, it opens or you can click a second time into the board for the position.
+- Hide the keypad by default where the board can be clicked, and enter the position with a second click into the board (left out 2026-11-21: a click on the board enters only the field, without a position, and the keypad stays).
 
 ## Game modes
 
