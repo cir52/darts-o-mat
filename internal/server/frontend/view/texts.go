@@ -440,6 +440,8 @@ type Texts interface {
 	ErrNoBots() string
 	ErrBotBoard() string
 	ErrBotSpread(min, max int) string
+	ErrTooManyBots(max int) string
+	BotThrows() string
 	Invite() string
 	RemoveFromLobby() string
 	Save() string
