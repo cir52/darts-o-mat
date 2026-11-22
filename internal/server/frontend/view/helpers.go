@@ -670,8 +670,9 @@ func correcting(v service.GameView, editing *throw.Dart) bool {
 // boardAction is where a click on a field of the board posts its dart, "" if the board is
 // only a picture. While a dart is corrected (correcting), the click corrects it like the
 // keypad. Otherwise it enters the next dart if the viewer may (mayEnterDart) for one of
-// their players, with or without cameras (for a dart the cameras missed), but not in the
-// bull-off, where only the bull, the bullseye and a miss count (bullOffPanel).
+// their players, with or without cameras (for a dart the cameras missed), but not for a bot
+// (botUp, the server throws for it) and not in the bull-off, where only the bull, the
+// bullseye and a miss count (bullOffPanel).
 func boardAction(v service.GameView, p progress, editing *throw.Dart) string {
 	switch {
 	case editing != nil:
@@ -679,7 +680,7 @@ func boardAction(v service.GameView, p progress, editing *throw.Dart) string {
 			return dartEditURL(v, *editing)
 		}
 		return ""
-	case !p.BullingOff && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID):
+	case !p.BullingOff && !botUp(v, p) && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID):
 		return gameURL(v.Game.ID, "/darts")
 	}
 	return ""

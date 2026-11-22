@@ -105,11 +105,12 @@ func TestHandEntry(t *testing.T) {
 func TestBoardAction(t *testing.T) {
 	t.Parallel()
 	board := int64(1)
-	const anna, ben = int64(10), int64(20)
-	v := service.GameView{CanThrow: true, Mine: []int64{anna}}
+	const anna, ben, robo = int64(10), int64(20), int64(30)
+	v := service.GameView{CanThrow: true, Mine: []int64{anna, robo}}
 	v.Game.Participants = []game.Participant{
 		{PlayerID: anna, Status: game.InvitationAccepted},
 		{PlayerID: ben, Status: game.InvitationAccepted, BoardID: &board},
+		{PlayerID: robo, Status: game.InvitationAccepted, BotSpread: 20},
 	}
 	withCamera := v
 	withCamera.Mine = []int64{ben}
@@ -136,6 +137,7 @@ func TestBoardAction(t *testing.T) {
 		{"my turn by hand", v, turnOf(anna), nil, enter},
 		{"my turn with cameras", withCamera, turnOf(ben), nil, enter},
 		{"another account's turn", v, turnOf(ben), nil, ""},
+		{"my bot's turn", v, turnOf(robo), nil, ""},
 		{"bull-off", v, bullOff, nil, ""},
 		{"takeout pending", v, takeout, nil, ""},
 		{"correcting a dart", v, turnOf(ben), dart, correct},
