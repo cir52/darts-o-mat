@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/sj14/darts-o-mat/internal/common/dartboard"
-	"github.com/sj14/darts-o-mat/internal/common/i18n"
 	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 )
 
@@ -33,45 +32,12 @@ func TestBoardFields(t *testing.T) {
 			t.Errorf("field %d %s has no path", f.Number, f.Segment)
 		}
 	}
-	if len(boardShapes) != 80 {
-		t.Errorf("got %d ring fields, want 80 (the heatmap draws these)", len(boardShapes))
-	}
 }
 
 func TestFieldVals(t *testing.T) {
 	t.Parallel()
-	if got, want := fieldVals(20, dartboard.Inner), `{"number": "20", "segment": "inner"}`; got != want {
+	f := boardField{Number: 20, Segment: dartboard.Inner}
+	if got, want := fieldVals(f), `{"number":"20","segment":"inner"}`; got != want {
 		t.Errorf("got %s, want %s", got, want)
-	}
-	if got, want := fieldID(25, dartboard.Bullseye), "field-25-bullseye"; got != want {
-		t.Errorf("got %s, want %s", got, want)
-	}
-}
-
-func TestFieldLabel(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		lang    i18n.Lang
-		number  uint8
-		segment dartboard.Segment
-		want    string
-	}{
-		{i18n.English, 20, dartboard.Inner, "Inner single 20"},
-		{i18n.English, 20, dartboard.Outer, "Outer single 20"},
-		{i18n.English, 20, dartboard.Double, "Double 20"},
-		{i18n.English, 20, dartboard.Triple, "Triple 20"},
-		{i18n.English, 25, dartboard.Bull, "Bull"},
-		{i18n.English, 25, dartboard.Bullseye, "Bullseye"},
-		{i18n.German, 7, dartboard.Inner, "Inneres Single 7"},
-		{i18n.German, 7, dartboard.Outer, "Äußeres Single 7"},
-		{i18n.German, 7, dartboard.Double, "Doppel 7"},
-		{i18n.German, 7, dartboard.Triple, "Triple 7"},
-		{i18n.German, 25, dartboard.Bull, "Bull"},
-		{i18n.German, 25, dartboard.Bullseye, "Bullseye"},
-	}
-	for _, tt := range tests {
-		if got := fieldLabel(textsOf(tt.lang), tt.number, tt.segment); got != tt.want {
-			t.Errorf("%s %d %s: got %q, want %q", tt.lang, tt.number, tt.segment, got, tt.want)
-		}
 	}
 }

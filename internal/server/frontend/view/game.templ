@@ -195,7 +195,9 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 	// The keypad takes the middle column when the viewer enters darts by hand, else the
 	// board gets the room: its darts come from cameras or from another account.
 	{{ keypad := editing != nil || adding || entersByHand(v, p) }}
-	<div id="board" sse-swap="board" hx-swap="outerHTML" data-sound={ soundKind(v) } data-sound-id={ soundID(v) }>
+	// hx-sync drops a request from anything inside (keypad, board, undo, …) while another
+	// one is running, so a double tap or a tap on the keypad and the board enter one dart.
+	<div id="board" sse-swap="board" hx-swap="outerHTML" hx-sync="this:drop" data-sound={ soundKind(v) } data-sound-id={ soundID(v) }>
 		@errorAlert(errMsg)
 		if v.HasLeft {
 			<div class="mb-4 rounded-2xl border border-white/15 bg-pub-800 px-4 py-3 text-white/70" role="status">{ T(ctx).YouLeft() }</div>
@@ -411,58 +413,44 @@ templ targetMarks(targets []uint8) {
 }
 
 // dartboardView draws the board with the darts of the current turn and the fields to
-// hit (around the clock, cricket). Where clickable (boardClickable) a click or Enter on a
-// field enters the dart like the keypad does; the layers above the fields don't take clicks.
+// hit (around the clock, cricket). Where clickable (boardClickable) a click on a field
+// enters the dart like the keypad does; the layers above the fields don't take clicks.
+// The board is for mouse and touch: keyboard and screen readers use the keypad.
 templ dartboardView(v service.GameView, p progress, large, clickable bool) {
 	{{ targets := boardTargetsOf(v, p) }}
 	<div class={ "mx-auto aspect-square w-full rounded-full shadow-[0_1rem_2rem_rgba(0,0,0,0.6)]", templ.KV("max-w-md", !large), templ.KV("max-w-2xl", large) }>
 		<svg
 			viewBox={ boardViewBox }
 			class="h-full w-full"
+			role="img"
+			aria-label={ T(ctx).Dartboard() }
 			if clickable {
-				role="group"
-				aria-label={ T(ctx).EnterDartOnBoard() }
 				hx-target="#board"
 				hx-swap="outerHTML"
-				hx-sync="this:drop"
-			} else {
-				role="img"
-				aria-label={ T(ctx).Dartboard() }
 			}
 		>
-			<circle cx="228" cy="228" r="226" fill="#0b0c0f" stroke="#2b2e35" stroke-width="3" aria-hidden="true"></circle>
+			<circle cx="228" cy="228" r="226" fill="#0b0c0f" stroke="#2b2e35" stroke-width="3"></circle>
 			for _, f := range boardFields {
-				<path
-					d={ f.Path }
-					fill={ f.Fill }
-					stroke={ boardWire }
-					stroke-width="0.8"
-					if clickable {
-						id={ fieldID(f.Number, f.Segment) }
-						class="cursor-pointer outline-none hover:stroke-amber-400 hover:[stroke-width:3] focus-visible:stroke-amber-400 focus-visible:[stroke-width:3]"
-						role="button"
-						tabindex="0"
-						aria-label={ fieldLabel(T(ctx), f.Number, f.Segment) }
-						hx-post={ gameURL(v.Game.ID, "/darts") }
-						hx-vals={ fieldVals(f.Number, f.Segment) }
-						hx-trigger="click, keyup[key=='Enter']"
-					}
-				></path>
+				if clickable {
+					// The hover color fills the field rather than outlining it: the fields
+					// drawn later and the dim layer would cover part of an outline.
+					<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8" class="cursor-pointer hover:fill-amber-400" hx-post={ gameURL(v.Game.ID, "/darts") } hx-vals={ fieldVals(f) }></path>
+				} else {
+					<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8"></path>
+				}
 			}
 			if len(targets) > 0 {
-				<g aria-hidden="true">
-					@targetMarks(targets)
-				</g>
+				@targetMarks(targets)
 			}
 			for _, n := range boardNumbers {
 				if isBoardTarget(targets, n.Text) {
-					<text x={ n.X } y={ n.Y } aria-hidden="true" fill={ boardTarget } font-size="32" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" text-anchor="middle" dominant-baseline="central" pointer-events="none">{ n.Text }</text>
+					<text x={ n.X } y={ n.Y } fill={ boardTarget } font-size="32" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" text-anchor="middle" dominant-baseline="central" pointer-events="none">{ n.Text }</text>
 				} else {
-					<text x={ n.X } y={ n.Y } aria-hidden="true" fill="#e9dcc0" font-size="24" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" text-anchor="middle" dominant-baseline="central" pointer-events="none">{ n.Text }</text>
+					<text x={ n.X } y={ n.Y } fill="#e9dcc0" font-size="24" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" text-anchor="middle" dominant-baseline="central" pointer-events="none">{ n.Text }</text>
 				}
 			}
 			for _, d := range boardDarts(v, p) {
-				<g class={ templ.KV("opacity-40", d.Faded) } aria-hidden="true" pointer-events="none">
+				<g class={ templ.KV("opacity-40", d.Faded) } pointer-events="none">
 					if d.Latest {
 						<circle cx={ d.X } cy={ d.Y } r="9" fill={ d.Fill } class="svg-center animate-ping"></circle>
 					}

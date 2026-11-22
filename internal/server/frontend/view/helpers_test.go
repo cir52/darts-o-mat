@@ -90,6 +90,46 @@ func TestHandEntry(t *testing.T) {
 	}
 }
 
+func TestBoardClickable(t *testing.T) {
+	t.Parallel()
+	board := int64(1)
+	const anna, ben = int64(10), int64(20)
+	v := service.GameView{CanThrow: true, Mine: []int64{anna}}
+	v.Game.Participants = []game.Participant{
+		{PlayerID: anna, Status: game.InvitationAccepted},
+		{PlayerID: ben, Status: game.InvitationAccepted, BoardID: &board},
+	}
+	withCamera := v
+	withCamera.Mine = []int64{ben}
+	turnOf := func(current int64) progress {
+		return progress{State: turn.State{CurrentPlayerID: &current}}
+	}
+	bullOff := turnOf(anna)
+	bullOff.BullingOff = true
+	takeout := turnOf(anna)
+	takeout.WaitingForTakeout = true
+
+	tests := []struct {
+		name    string
+		v       service.GameView
+		p       progress
+		editing *throw.Dart
+		want    bool
+	}{
+		{"my turn by hand", v, turnOf(anna), nil, true},
+		{"my turn with cameras", withCamera, turnOf(ben), nil, true},
+		{"another account's turn", v, turnOf(ben), nil, false},
+		{"correcting a dart", v, turnOf(anna), &throw.Dart{}, false},
+		{"bull-off", v, bullOff, nil, false},
+		{"takeout pending", v, takeout, nil, false},
+	}
+	for _, tt := range tests {
+		if got := boardClickable(tt.v, tt.p, tt.editing); got != tt.want {
+			t.Errorf("%s: boardClickable = %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
 func TestLastTurnOf(t *testing.T) {
 	t.Parallel()
 	st := x01.State{Turns: []x01.Turn{

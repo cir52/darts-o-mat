@@ -136,8 +136,8 @@ templ heatmap(h stats.Heat) {
 				<svg viewBox={ boardViewBox } class="h-full w-full" role="img" aria-label={ T(ctx).Heatmap() }>
 					<circle cx="228" cy="228" r="226" fill="#0b0c0f" stroke="#2b2e35" stroke-width="3"></circle>
 					<g opacity="0.3">
-						for _, s := range boardShapes {
-							<path d={ s.Path } fill={ s.Fill } stroke={ boardWire } stroke-width="0.8"></path>
+						for _, f := range boardFields {
+							<path d={ f.Path } fill={ f.Fill } stroke={ boardWire } stroke-width="0.8"></path>
 						}
 					</g>
 					<image href={ heatImage(h) } x={ heatPos } y={ heatPos } width={ heatSize } height={ heatSize } preserveAspectRatio="none"></image>

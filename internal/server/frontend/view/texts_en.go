@@ -356,12 +356,7 @@ func (textsEN) Double() string      { return "Double" }
 func (textsEN) Triple() string      { return "Triple" }
 func (textsEN) Bull() string        { return "Bull" }
 func (textsEN) Bullseye() string    { return "Bullseye" }
-func (textsEN) InnerSingle() string { return "Inner single" }
-func (textsEN) OuterSingle() string { return "Outer single" }
 func (textsEN) Dartboard() string   { return "Dartboard" }
-func (textsEN) EnterDartOnBoard() string {
-	return "Enter a dart: click the field that was hit"
-}
 func (textsEN) Miss() string        { return "Miss" }
 func (textsEN) Hit() string         { return "Hit" }
 func (textsEN) OtherNumber() string { return "Enter another number" }

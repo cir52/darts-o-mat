@@ -332,27 +332,6 @@ func dartLabel(t Texts, d throw.Dart) string {
 	return d.String()
 }
 
-// fieldLabel names a field of the board for screen readers: "Inner single 20", "Triple 20",
-// "Bull".
-func fieldLabel(t Texts, number uint8, s dartboard.Segment) string {
-	n := strconv.Itoa(int(number))
-	switch s {
-	case dartboard.Bullseye:
-		return t.Bullseye()
-	case dartboard.Bull:
-		return t.Bull()
-	case dartboard.Inner:
-		return t.InnerSingle() + " " + n
-	case dartboard.Outer:
-		return t.OuterSingle() + " " + n
-	case dartboard.Double:
-		return t.Double() + " " + n
-	case dartboard.Triple:
-		return t.Triple() + " " + n
-	}
-	return t.Single() + " " + n
-}
-
 // fitStyle sets what text-fit needs (see fitText): the label's length in characters
 // (at least 3, so short labels don't grow beyond the others) and the largest size.
 func fitStyle(label, maxSize string) templ.SafeCSS {
@@ -668,21 +647,17 @@ func entersByHand(v service.GameView, p progress) bool {
 	return mayEnterDart(v, p) && handEntry(v, p)
 }
 
-// boardClickable reports whether a click on a field of the board enters a dart: the same
-// as for the keypad (entersByHand), but not while a dart is corrected.
+// boardClickable reports whether a click on a field of the board enters a dart: the viewer
+// may enter the next dart (mayEnterDart) for one of their players, with or without cameras
+// (for a dart the cameras missed), but not while a dart is corrected and not in the
+// bull-off, where only the bull, the bullseye and a miss count (bullOffPanel).
 func boardClickable(v service.GameView, p progress, editing *throw.Dart) bool {
-	return editing == nil && entersByHand(v, p)
-}
-
-// fieldID is the id of a field of the board, so htmx restores the focus on it after the
-// board is swapped.
-func fieldID(number uint8, s dartboard.Segment) string {
-	return "field-" + strconv.Itoa(int(number)) + "-" + s.String()
+	return editing == nil && !p.BullingOff && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID)
 }
 
 // fieldVals are the form values of a click on a field of the board.
-func fieldVals(number uint8, s dartboard.Segment) string {
-	return `{"number": "` + strconv.Itoa(int(number)) + `", "segment": "` + s.String() + `"}`
+func fieldVals(f boardField) string {
+	return `{"number":"` + strconv.Itoa(int(f.Number)) + `","segment":"` + f.Segment.String() + `"}`
 }
 
 // mayAddDart reports whether the viewer may enter a dart that the cameras missed for the
@@ -750,12 +725,12 @@ type accent struct {
 }
 
 var accents = map[string]accent{
-	"green":   {"border-board-green/70 from-board-green/25 [--glow-color:var(--color-board-green)]", "bg-board-green", "bg-board-green"},
-	"red":     {"border-board-red/70 from-board-red/25 [--glow-color:var(--color-board-red)]", "bg-board-red", "bg-board-red"},
-	"sky":     {"border-sky-400/70 from-sky-400/25 [--glow-color:var(--color-sky-400)]", "bg-sky-500", "bg-sky-400"},
-	"violet":  {"border-violet-400/70 from-violet-400/25 [--glow-color:var(--color-violet-400)]", "bg-violet-500", "bg-violet-400"},
-	"pink":    {"border-pink-400/70 from-pink-400/25 [--glow-color:var(--color-pink-400)]", "bg-pink-500", "bg-pink-400"},
-	"orange":  {"border-orange-400/70 from-orange-400/25 [--glow-color:var(--color-orange-400)]", "bg-orange-500", "bg-orange-400"},
+	"green":  {"border-board-green/70 from-board-green/25 [--glow-color:var(--color-board-green)]", "bg-board-green", "bg-board-green"},
+	"red":    {"border-board-red/70 from-board-red/25 [--glow-color:var(--color-board-red)]", "bg-board-red", "bg-board-red"},
+	"sky":    {"border-sky-400/70 from-sky-400/25 [--glow-color:var(--color-sky-400)]", "bg-sky-500", "bg-sky-400"},
+	"violet": {"border-violet-400/70 from-violet-400/25 [--glow-color:var(--color-violet-400)]", "bg-violet-500", "bg-violet-400"},
+	"pink":   {"border-pink-400/70 from-pink-400/25 [--glow-color:var(--color-pink-400)]", "bg-pink-500", "bg-pink-400"},
+	"orange": {"border-orange-400/70 from-orange-400/25 [--glow-color:var(--color-orange-400)]", "bg-orange-500", "bg-orange-400"},
 }
 
 // playerAccent returns the accent of a player of the game.

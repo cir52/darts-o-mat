@@ -22,8 +22,8 @@ const (
 	boardViewBox = "0 0 456 456"
 )
 
-// boardShape is a field of the drawn board: what it looks like, and what a dart in it is.
-type boardShape struct {
+// boardField is a field of the drawn board: what it looks like, and what a dart in it is.
+type boardField struct {
 	Path, Fill string
 	Number     uint8
 	Segment    dartboard.Segment
@@ -55,15 +55,9 @@ const (
 	boardTarget = "#fbbf24"
 )
 
-// boardShapes are the 80 fields around the bull (the heatmap draws these), boardFields
-// all 82 with the bull and the bullseye on top, which a dart can be entered in.
-var (
-	boardShapes, boardNumbers = drawBoard()
-	boardFields               = append(slices.Clone(boardShapes),
-		boardShape{Path: circlePath(dartboard.BullRadius), Fill: boardGreen, Number: dartboard.BullNumber, Segment: dartboard.Bull},
-		boardShape{Path: circlePath(dartboard.BullseyeRadius), Fill: boardRed, Number: dartboard.BullNumber, Segment: dartboard.Bullseye},
-	)
-)
+// boardFields are the 82 fields of the board: per number inner single, triple, outer
+// single and double, then the bull and the bullseye on top.
+var boardFields, boardNumbers = drawBoard()
 
 // svgX and svgY turn a board position into drawing coordinates.
 func svgX(p dartboard.Point) string { return strconv.FormatFloat(boardCenter+p.X, 'f', 2, 64) }
@@ -89,8 +83,8 @@ func circlePath(r float64) string {
 	return fmt.Sprintf("M%g %gA%g %g 0 1 0 %g %gA%g %g 0 1 0 %g %gZ", boardCenter-r, boardCenter, r, r, boardCenter+r, boardCenter, r, r, boardCenter-r, boardCenter)
 }
 
-func drawBoard() ([]boardShape, []boardNumber) {
-	var shapes []boardShape
+func drawBoard() ([]boardField, []boardNumber) {
+	var fields []boardField
 	var numbers []boardNumber
 	for i, n := range dartboard.Segments {
 		center := float64(i) * dartboard.SegmentAngle
@@ -99,16 +93,20 @@ func drawBoard() ([]boardShape, []boardNumber) {
 		if i%2 == 1 {
 			single, ring = boardCream, boardGreen
 		}
-		shapes = append(shapes,
-			boardShape{Path: ringPath(dartboard.BullRadius, dartboard.TripleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Inner},
-			boardShape{Path: ringPath(dartboard.TripleInnerRadius, dartboard.TripleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Triple},
-			boardShape{Path: ringPath(dartboard.TripleOuterRadius, dartboard.DoubleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Outer},
-			boardShape{Path: ringPath(dartboard.DoubleInnerRadius, dartboard.DoubleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Double},
+		fields = append(fields,
+			boardField{Path: ringPath(dartboard.BullRadius, dartboard.TripleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Inner},
+			boardField{Path: ringPath(dartboard.TripleInnerRadius, dartboard.TripleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Triple},
+			boardField{Path: ringPath(dartboard.TripleOuterRadius, dartboard.DoubleInnerRadius, a1, a2), Fill: single, Number: n, Segment: dartboard.Outer},
+			boardField{Path: ringPath(dartboard.DoubleInnerRadius, dartboard.DoubleOuterRadius, a1, a2), Fill: ring, Number: n, Segment: dartboard.Double},
 		)
 		p := dartboard.Polar(197, center)
 		numbers = append(numbers, boardNumber{X: svgX(p), Y: svgY(p), Text: strconv.Itoa(int(n))})
 	}
-	return shapes, numbers
+	fields = append(fields,
+		boardField{Path: circlePath(dartboard.BullRadius), Fill: boardGreen, Number: dartboard.BullNumber, Segment: dartboard.Bull},
+		boardField{Path: circlePath(dartboard.BullseyeRadius), Fill: boardRed, Number: dartboard.BullNumber, Segment: dartboard.Bullseye},
+	)
+	return fields, numbers
 }
 
 // targetPath outlines the field to hit next in around the clock: the whole segment of

@@ -243,10 +243,7 @@ type Texts interface {
 	Triple() string
 	Bull() string
 	Bullseye() string
-	InnerSingle() string
-	OuterSingle() string
 	Dartboard() string
-	EnterDartOnBoard() string
 	Miss() string
 	Hit() string
 	OtherNumber() string
