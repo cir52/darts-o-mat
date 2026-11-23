@@ -78,7 +78,7 @@ func (s *Service) watchTurn(g game.Game) {
 		at = &move
 	}
 	if at != nil {
-		s.timers[g.ID] = time.AfterFunc(time.Until(*at), func() { s.turnTimer(g.ID) })
+		s.timers[g.ID] = time.AfterFunc(at.Sub(s.now()), func() { s.turnTimer(g.ID) })
 	}
 }
 
@@ -182,7 +182,7 @@ func (s *Service) endTurn(ctx context.Context, g game.Game, v GameView) error {
 	if abort {
 		return s.endGameOf(ctx, g)
 	}
-	if err := s.store.AddDart(ctx, &entry); err != nil {
+	if err := s.addEntry(ctx, &entry); err != nil {
 		return err
 	}
 	s.notifyGame(g)

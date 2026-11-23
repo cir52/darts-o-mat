@@ -98,6 +98,7 @@ func (l Log) Replay(t *Turn, dart func(i int, d throw.Dart) error) error {
 	// that is over too.
 	endLeg := func(i, set, leg int) {
 		t.Times.Legs = append(t.Times.Legs, LegTime{Set: set, Leg: leg, Span: span(legFrom, i)})
+		t.LegEnds = append(t.LegEnds, i)
 		legFrom = -1
 		if t.setWinner != nil || t.over {
 			t.Times.Sets = append(t.Times.Sets, span(setFrom, i))
@@ -198,6 +199,8 @@ type Turn struct {
 	Throwers []int
 	// Times is when the game and its finished legs and sets were played (see Replay).
 	Times Times
+	// LegEnds are the entries of the log that ended a leg (see Replay).
+	LegEnds []int
 
 	legs           int   // to win a set (the game without sets)
 	sets           int   // to win the game

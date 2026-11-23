@@ -51,6 +51,10 @@
   --animate-dart-in: dart-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   --animate-shake: shake 0.5s ease-in-out both;
   --animate-celebrate: celebrate 2.4s ease-out both;
+  /* The score of a finished visit over the board: gone when the pause (service.VisitPause)
+     ends. The page sets the duration (style attribute, visitScoreStyle); 1.5s is only the
+     default. */
+  --animate-visit-score: visit-score 1.5s ease-out both;
   /* The target on the board lights up and fades again (opacity only, see Performance). */
   --animate-target: target 1.6s ease-in-out infinite;
   /* The bar of the time for a turn runs down; the duration and where it starts come from
@@ -109,6 +113,24 @@
     100% {
       opacity: 0;
       transform: scale(1.3);
+    }
+  }
+
+  @keyframes visit-score {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    15% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.1);
     }
   }
 }
@@ -174,4 +196,17 @@
 @utility text-fit {
   white-space: nowrap;
   font-size: min(var(--fit-max, 3rem), calc(100cqw / (var(--fit-len, 3) * 0.6)));
+}
+
+/* text-outline gives text a thick dark outline behind the letters (paint-order: only the
+   outer half of the stroke shows) and a dark glow around it that fades out, so it stays
+   legible on any background; both scale with the font size. The shadow is painted once:
+   animate the element by opacity/transform only (see Performance). */
+@utility text-outline {
+  -webkit-text-stroke: 0.16em #0b0c0f;
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 0.12em rgb(11 12 15 / 0.9),
+    0 0 0.3em rgb(11 12 15 / 0.6),
+    0 0 0.6em rgb(11 12 15 / 0.35);
 }

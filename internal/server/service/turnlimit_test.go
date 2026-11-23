@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/sj14/darts-o-mat/internal/common/dartboard"
+	"github.com/sj14/darts-o-mat/internal/server/domain/account"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/x01"
 	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 )
 
@@ -293,5 +295,85 @@ func TestRetryTurn(t *testing.T) {
 	s.retryTurn(gameID)
 	if s.timers[gameID] != nil {
 		t.Errorf("a timer after %d tries, want none", maxRetries)
+	}
+}
+
+// The next player's time starts after the pause the finished visit is shown for; the first
+// turn's starts with the game, a turn after a skip right away.
+func TestTurnDeadlineAfterVisit(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := newService(t)
+	anna, ben := register(t, s, "anna"), register(t, s, "ben")
+	befriend(t, s, anna, ben)
+	g := x01Game(anna.PlayerID)
+	g.TurnSeconds = 60
+	v, _ := createGame(ctx, s, anna, g, []string{"ben"})
+	id := v.Game.ID
+	_, _ = acceptGame(ctx, s, ben, id, nil)
+	limit := time.Minute
+	add := func(acc account.Account, gameID int64, d throw.Dart) GameView {
+		t.Helper()
+		v, err := s.AddDart(ctx, acc, gameID, d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+
+	for range 2 {
+		v = add(anna, id, t20)
+	}
+	if v.TurnDeadline == nil {
+		t.Fatal("no deadline in the middle of anna's visit")
+	}
+	if want := v.Game.StartedAt.Add(limit); v.TurnDeadline.Before(want) || v.TurnDeadline.After(want.Add(time.Minute)) {
+		t.Fatalf("deadline in the middle of anna's visit: %v, want about %v", v.TurnDeadline, want)
+	}
+	v = add(anna, id, t20)
+	want := v.Darts[2].CreatedAt.Add(VisitPause + limit)
+	if v.TurnDeadline == nil || !v.TurnDeadline.Equal(want) {
+		t.Errorf("deadline after anna's visit: %v, want the dart's time plus pause and limit (%v)", v.TurnDeadline, want)
+	}
+	if time.Since(v.Darts[2].CreatedAt) > time.Minute {
+		t.Errorf("the dart's time %v is not the server's clock", v.Darts[2].CreatedAt)
+	}
+
+	// Alone the thrower goes on at once: no pause.
+	eva := register(t, s, "eva")
+	guest, err := s.CreateGuest(ctx, eva, "Gast")
+	if err != nil {
+		t.Fatal(err)
+	}
+	solo := x01Game(guest.ID)
+	solo.TurnSeconds = 60
+	if v, err = createGame(ctx, s, eva, solo, nil); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		v = add(eva, v.Game.ID, t20)
+	}
+	if want := v.Darts[2].CreatedAt.Add(limit); v.TurnDeadline == nil || !v.TurnDeadline.Equal(want) {
+		t.Errorf("deadline after a visit alone: %v, want the dart's time plus the limit (%v)", v.TurnDeadline, want)
+	}
+
+	// A won leg has its banner and the next leg starts at once: no pause.
+	carla, dora := register(t, s, "carla"), register(t, s, "dora")
+	befriend(t, s, carla, dora)
+	legs := x01Game(carla.PlayerID)
+	legs.TurnSeconds = 60
+	legs.Legs = 2
+	legs.Rules = &x01.Settings{StartScore: 40, OutMode: x01.OutModeDouble}
+	v, err = createGame(ctx, s, carla, legs, []string{"dora"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = acceptGame(ctx, s, dora, v.Game.ID, nil)
+	v, err = s.AddDart(ctx, carla, v.Game.ID, d20)
+	if err != nil || v.Common().LegWinner == nil {
+		t.Fatalf("after the checkout: leg winner %v, error %v; want a won leg", v.Common().LegWinner, err)
+	}
+	if want := v.Darts[0].CreatedAt.Add(limit); v.TurnDeadline == nil || !v.TurnDeadline.Equal(want) {
+		t.Errorf("deadline after a won leg: %v, want the dart's time plus the limit (%v)", v.TurnDeadline, want)
 	}
 }

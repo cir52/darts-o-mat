@@ -3,6 +3,8 @@ package turn
 import (
 	"slices"
 	"time"
+
+	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 )
 
 // State is the part of a game's state that is the same for all modes: whose turn it
@@ -35,6 +37,8 @@ type State struct {
 	BullOffTie []int64 `json:"bull_off_tie,omitempty"`
 	// Throwers is the player who threw each entry of the log, 0 for takeouts.
 	Throwers []int64 `json:"-"`
+	// LegEnds are the entries of the log that ended a leg, by index.
+	LegEnds []int `json:"-"`
 	// Times is when the game and its finished legs and sets were played.
 	Times Times `json:"times"`
 	// Records is what each player has won, by player; the modes' players show it too.
@@ -147,6 +151,7 @@ func (t *Turn) State(playerIDs []int64) State {
 		BullOff:           []BullOffDart{},
 		Throwers:          make([]int64, len(t.Throwers)),
 		Records:           make(map[int64]Record, len(playerIDs)),
+		LegEnds:           slices.Clone(t.LegEnds),
 		Times:             Times{Game: t.Times.Game, Legs: slices.Clone(t.Times.Legs), Sets: slices.Clone(t.Times.Sets)},
 	}
 	if t.legWinner != nil {
@@ -179,4 +184,18 @@ func (t *Turn) State(playerIDs []int64) State {
 		}
 	}
 	return s
+}
+
+// VisitEnded reports whether entry i of the log, the dart d, finished a visit that the game
+// page shows for a moment before the next player is up (the pause after a visit,
+// service.VisitPause), and whose time for the turn starts after it (game.Game.TurnDeadline):
+// it is a dart (not a takeout, a skipped turn or a player leaving), not one of the
+// bull-off, it didn't end a leg or a set, whose banner shows the result and whose next
+// leg starts at once, and another player is up next (alone, or the only one left, the
+// thrower goes on at once). That it is a turn's last dart is for whoever asks to know.
+func (s State) VisitEnded(i int, d throw.Dart) bool {
+	return d.IsDart() &&
+		s.CurrentPlayerID != nil && *s.CurrentPlayerID != d.PlayerID &&
+		!slices.ContainsFunc(s.BullOff, func(b BullOffDart) bool { return b.Entry == i }) &&
+		!slices.Contains(s.LegEnds, i)
 }

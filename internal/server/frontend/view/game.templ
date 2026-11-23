@@ -88,11 +88,12 @@ templ gameTitle(v service.GameView, p *progress) {
 
 // boardMenu is the board the viewer's players throw on, with a menu to change it or to take
 // them off it, e.g. when it broke: then the keypad takes over, as if they had played
-// without a board from the start. A <details> opens it without JavaScript; choosing swaps
-// the page's board, which closes it.
+// without a board from the start. A <details> opens it without JavaScript; connection.js keeps
+// it open when the page's board is swapped (data-keep-open), choosing swaps the board and
+// closes it.
 templ boardMenu(v service.GameView) {
 	{{ current, name, on := myBoard(v) }}
-	<details class="relative">
+	<details class="relative" data-keep-open="board-menu">
 		<summary class="cursor-pointer list-none rounded-full border border-white/20 bg-white/10 px-3 py-1 hover:bg-white/15 [&::-webkit-details-marker]:hidden" title={ T(ctx).Board() }>
 			if on {
 				📷 { name }
@@ -204,7 +205,7 @@ templ buttonIcon(path string) {
 }
 
 templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool) {
-	{{ p := progressOf(v) }}
+	{{ p := pageProgress(v, editing, adding, errMsg) }}
 	// The keypad takes the middle column when the viewer enters darts by hand, else the
 	// board gets the room: its darts come from cameras or from another account.
 	{{ keypad := editing != nil || adding || entersByHand(v, p) }}
@@ -223,7 +224,7 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 			}
 		}
 		if p.GameOver {
-			<div class="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 p-6 text-pub-950 shadow-2xl shadow-amber-500/30 animate-dart-in" role="status">
+			<div class="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 p-6 text-pub-950 shadow-2xl shadow-amber-500/30 animate-dart-in" style={ effectStyle(v) } role="status">
 				<div class="font-display text-5xl font-extrabold uppercase sm:text-6xl">{ T(ctx).WinsGame(playerName(ctx, v, *p.WinnerID)) }</div>
 				if d := p.Times.Game.Duration(); d > 0 {
 					<div class="mt-1 font-semibold tabular-nums">{ T(ctx).Duration(clock(d)) }</div>
@@ -241,6 +242,11 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 			@ratePlayers(v, rateable)
 		}
 		@celebration(v, p)
+		if p.Paused {
+			// The finished visit shows for service.VisitPause; then the page fetches the next player.
+			// Same last entry, so the sound stays silent.
+			<div hidden hx-get={ gameURL(v.Game.ID, "/board") } hx-trigger={ pauseTrigger(p) } hx-target="#board" hx-swap="outerHTML"></div>
+		}
 		// Desktop: the players (the current one with the darts of the visit), the keypad if
 		// the viewer enters darts by hand, and the board side by side, so a turn needs no
 		// scrolling; history and statistics follow below. Narrow screens stack them.
@@ -264,8 +270,9 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 					@inputPanel(v, p, editing, adding, keypad)
 				</div>
 			}
-			<div>
+			<div class="relative">
 				@dartboardView(v, p, !keypad, boardAction(v, p, editing))
+				@visitScoreView(v, p)
 			</div>
 		</div>
 		switch st := v.State.(type) {
@@ -299,16 +306,22 @@ templ inputPanel(v service.GameView, p progress, editing *throw.Dart, adding, ke
 		if adding && !handEntry(v, p) {
 			@hideKeypadButton(v)
 		}
-		@botLock(v, p) {
+		@inputLock(v, p) {
 			@dartInput(v, gameURL(v.Game.ID, "/darts"))
 		}
 	}
 }
 
-// botLock shows the input of darts locked while a bot is up, so the page keeps its layout
-// (see handEntry) but nobody enters the bot's darts: the server throws them.
-templ botLock(v service.GameView, p progress) {
-	if botUp(v, p) {
+// inputLock shows the input of darts locked, so the page keeps its layout (see handEntry):
+// while a bot is up nobody enters the bot's darts, the server throws them; while the
+// finished visit shows (Paused) the next dart isn't due yet.
+templ inputLock(v service.GameView, p progress) {
+	if p.Paused {
+		// Also after a bot's visit: the next player isn't a bot's.
+		<fieldset disabled>
+			{ children... }
+		</fieldset>
+	} else if botUp(v, p) {
 		<fieldset disabled class="opacity-40" title={ T(ctx).BotThrows() }>
 			<legend class="sr-only">{ T(ctx).BotThrows() }</legend>
 			{ children... }
@@ -395,23 +408,41 @@ templ undoButton(v service.GameView) {
 	>↶</button>
 }
 
-// celebration shows a big effect right after a special turn: 180 or busted.
+// celebration shows a big effect right after a special turn: 180 or busted, who starts or
+// won a leg. Each effect is offset by the time since the log's last entry (effectStyle), so
+// a later render of the page continues where it was, or shows its end.
 templ celebration(v service.GameView, p progress) {
 	if player, decided := bullOffDecided(v, p); decided {
-		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-board-red to-board-green px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-board-cream shadow-lg">{ T(ctx).Starts(playerName(ctx, v, player)) }</div>
+		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-board-red to-board-green px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-board-cream shadow-lg" style={ effectStyle(v) }>{ T(ctx).Starts(playerName(ctx, v, player)) }</div>
 	}
 	if p.SetWinner != nil {
-		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-sky-300 to-sky-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-sky-500/30">{ T(ctx).SetTo(playerName(ctx, v, *p.SetWinner)) }</div>
+		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-sky-300 to-sky-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-sky-500/30" style={ effectStyle(v) }>{ T(ctx).SetTo(playerName(ctx, v, *p.SetWinner)) }</div>
 	} else if p.LegWinner != nil {
-		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-amber-500/30">{ T(ctx).LegTo(playerName(ctx, v, *p.LegWinner)) }</div>
+		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-amber-500/30" style={ effectStyle(v) }>{ T(ctx).LegTo(playerName(ctx, v, *p.LegWinner)) }</div>
 	}
 	switch latestTurnEvent(v) {
 		case "180":
 			<div class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-				<div class="animate-celebrate font-display text-[10rem] font-extrabold leading-none text-amber-300 drop-shadow-[0_0_2rem_rgba(251,191,36,0.8)] sm:text-[16rem]">180!</div>
+				<div class="animate-celebrate font-display text-[10rem] font-extrabold leading-none text-amber-300 drop-shadow-[0_0_2rem_rgba(251,191,36,0.8)] sm:text-[16rem]" style={ effectStyle(v) }>180!</div>
 			</div>
 		case "bust":
-			<div class="mb-4 animate-shake rounded-2xl bg-board-red px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-board-cream shadow-lg shadow-board-red/40">{ T(ctx).Bust() }</div>
+			<div class="mb-4 animate-shake rounded-2xl bg-board-red px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-board-cream shadow-lg shadow-board-red/40" style={ effectStyle(v) }>{ T(ctx).Bust() }</div>
+	}
+}
+
+// visitScoreView shows the score of the visit that just finished large over the board: it
+// fades in and slowly out (animate-visit-score, offset like the other effects). It sits in
+// the board's column, which is relative, and takes no clicks. A dark outline around the
+// letters (text-outline) keeps it legible on the cream fields; the label shrinks to the
+// board's width (fitText). Red for a bust, gold for 100 points or more, else cream.
+templ visitScoreView(v service.GameView, p progress) {
+	{{ now := time.Now() }}
+	if score, ok := visitScore(T(ctx), v, p, now); ok {
+		<div class="@container pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4" role="status">
+			<div class={ "animate-visit-score text-outline font-number font-extrabold uppercase leading-none", templ.KV("text-board-red", score.Bust), templ.KV("text-amber-300", score.Strong && !score.Bust), templ.KV("text-board-cream", !score.Bust && !score.Strong) } style={ visitScoreStyle(v, now) }>
+				@fitText(score.Value, "14rem")
+			</div>
+		</div>
 	}
 }
 
@@ -480,9 +511,9 @@ templ dartboardView(v service.GameView, p progress, large bool, action string) {
 			for _, d := range boardDarts(v, p) {
 				<g class={ templ.KV("opacity-40", d.Faded) } pointer-events="none">
 					if d.Latest {
-						<circle cx={ d.X } cy={ d.Y } r="9" fill={ d.Fill } class="svg-center animate-ping"></circle>
+						<circle cx={ d.X } cy={ d.Y } r="9" fill={ d.Fill } class="svg-center animate-ping" style={ effectStyle(v) }></circle>
 					}
-					<circle cx={ d.X } cy={ d.Y } r="9" fill={ d.Fill } stroke="#0b0c0f" stroke-width="2.5" class={ "svg-center", templ.KV("animate-dart-in", d.Latest) }></circle>
+					<circle cx={ d.X } cy={ d.Y } r="9" fill={ d.Fill } stroke="#0b0c0f" stroke-width="2.5" class={ "svg-center", templ.KV("animate-dart-in", d.Latest) } if d.Latest { style={ effectStyle(v) } }></circle>
 					<text x={ d.X } y={ d.Y } fill="#0b0c0f" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central">{ d.Label }</text>
 				</g>
 			}
@@ -589,7 +620,8 @@ templ playerCard(v service.GameView, p progress, l playerLine, keypad bool) {
 			@legDots(v, l)
 			if winner {
 				<span class="rounded-full bg-amber-400 px-3 py-0.5 font-display text-lg font-extrabold uppercase text-pub-950">{ T(ctx).Win() }</span>
-			} else {
+			} else if !p.Paused {
+				// Not while the finished visit shows: the thrower isn't up anymore.
 				<span class={ "rounded-full px-3 py-0.5 font-display text-lg font-extrabold uppercase text-board-cream", accent.Badge }>{ T(ctx).ToThrow() }</span>
 			}
 		</div>
@@ -756,7 +788,7 @@ templ dartInput(v service.GameView, action string) {
 					</button>
 				</form>
 			</div>
-			<details class="group">
+			<details class="group" data-keep-open="other-number">
 				<summary class="cursor-pointer list-none text-sm font-semibold text-white/50 hover:text-white/80">
 					<span class="group-open:hidden">▸ { T(ctx).OtherNumber() }</span>
 					<span class="hidden group-open:inline">▾ { T(ctx).OtherNumber() }</span>
@@ -869,9 +901,9 @@ templ turnDartsList(v service.GameView, darts []throw.Dart, complete bool) {
 // The dart just thrown flies in.
 templ dartTile(v service.GameView, d throw.Dart) {
 	if mayEditDart(v, d) {
-		<button type="button" class={ dartTileClasses(v, d), "hover:brightness-110 active:scale-95" } title={ T(ctx).Correct() } hx-get={ dartEditURL(v, d) } hx-target="#board" hx-swap="outerHTML">@fitText(dartLabel(T(ctx), d), "2.25rem")</button>
+		<button type="button" class={ dartTileClasses(v, d), "hover:brightness-110 active:scale-95" } if isLatest(v, d) { style={ effectStyle(v) } } title={ T(ctx).Correct() } hx-get={ dartEditURL(v, d) } hx-target="#board" hx-swap="outerHTML">@fitText(dartLabel(T(ctx), d), "2.25rem")</button>
 	} else {
-		<span class={ dartTileClasses(v, d) }>@fitText(dartLabel(T(ctx), d), "2.25rem")</span>
+		<span class={ dartTileClasses(v, d) } if isLatest(v, d) { style={ effectStyle(v) } }>@fitText(dartLabel(T(ctx), d), "2.25rem")</span>
 	}
 }
 
@@ -1120,7 +1152,7 @@ templ bullOffPanel(v service.GameView, p progress, keypad bool) {
 		if !handEntry(v, p) {
 			@hideKeypadButton(v)
 		}
-		@botLock(v, p) {
+		@inputLock(v, p) {
 			<div class="grid grid-cols-3 gap-2">
 				@quickDart(action, dartboard.BullNumber, dartboard.Bullseye, T(ctx).Bullseye(), false, "1.875rem", "h-20 bg-board-red shadow-board-red/40")
 				@quickDart(action, dartboard.BullNumber, dartboard.Bull, T(ctx).Bull(), false, "1.875rem", "h-20 bg-board-green shadow-board-green/40")

@@ -73,7 +73,7 @@ func TestCompletedByTime(t *testing.T) {
 	if v, _ = s.Game(ctx, anna, v.Game.ID); v.Completed {
 		t.Error("completed before the minute is over")
 	}
-	offset = game.CompleteAfter + 2*time.Second // the database's time has whole seconds
+	offset = game.CompleteAfter + time.Second
 	v, _ = s.Game(ctx, anna, v.Game.ID)
 	if !v.Completed || v.Game.CompletedAt == nil {
 		t.Errorf("a minute after the end: completed %v, stored %v; want completed and stored", v.Completed, v.Game.CompletedAt)
