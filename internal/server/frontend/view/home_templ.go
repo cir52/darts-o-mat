@@ -1917,7 +1917,7 @@ func newGame(m HomeModel) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var89 = []any{btnPrimary, "px-6 py-3 font-display text-2xl uppercase"}
+					var templ_7745c5c3_Var89 = []any{btnPrimary, btnLarge}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var89...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -1952,7 +1952,7 @@ func newGame(m HomeModel) templ.Component {
 				var templ_7745c5c3_Var91 string
 				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).StartMode("X01"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 278, Col: 120}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 278, Col: 85}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 				if templ_7745c5c3_Err != nil {
@@ -2072,7 +2072,7 @@ func newGame(m HomeModel) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var97 = []any{btnPrimary, "px-6 py-3 font-display text-2xl uppercase"}
+					var templ_7745c5c3_Var97 = []any{btnPrimary, btnLarge}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var97...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -2107,7 +2107,7 @@ func newGame(m HomeModel) templ.Component {
 				var templ_7745c5c3_Var99 string
 				templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).StartMode(T(ctx).AroundTheClock()))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 299, Col: 138}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 299, Col: 103}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var99))
 				if templ_7745c5c3_Err != nil {
@@ -2232,7 +2232,7 @@ func newGame(m HomeModel) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var104 = []any{btnPrimary, "px-6 py-3 font-display text-2xl uppercase"}
+					var templ_7745c5c3_Var104 = []any{btnPrimary, btnLarge}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var104...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -2267,7 +2267,7 @@ func newGame(m HomeModel) templ.Component {
 				var templ_7745c5c3_Var106 string
 				templ_7745c5c3_Var106, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).StartMode(T(ctx).Cricket()))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 318, Col: 131}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/home.templ`, Line: 318, Col: 96}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var106))
 				if templ_7745c5c3_Err != nil {

@@ -43,7 +43,7 @@ func (textsDE) FirstToSets(sets, legs int) string {
 	return "First to " + strconv.Itoa(sets) + " Sets à " + strconv.Itoa(legs) + " " + plural(legs, "Leg", "Legs")
 }
 
-func (textsDE) ToTournament() string  { return "🏆 Zum Turnier" }
+func (textsDE) ToTournament() string  { return "Zum Turnier" }
 func (textsDE) Rematch() string       { return "Revanche" }
 func (textsDE) ToRematch() string     { return "Zur Revanche" }
 func (textsDE) BullOff() string       { return "Ausbullen" }

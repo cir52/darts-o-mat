@@ -275,7 +275,7 @@ templ newGame(m HomeModel) {
 						@legsChoice(m.Settings)
 						@participants(m)
 						<div>
-							<button type="submit" class={ btnPrimary, "px-6 py-3 font-display text-2xl uppercase" }>{ T(ctx).StartMode("X01") }</button>
+							<button type="submit" class={ btnPrimary, btnLarge }>{ T(ctx).StartMode("X01") }</button>
 						</div>
 					</form>
 				case game.ModeAroundTheClock:
@@ -296,7 +296,7 @@ templ newGame(m HomeModel) {
 						@legsChoice(m.Settings)
 						@participants(m)
 						<div>
-							<button type="submit" class={ btnPrimary, "px-6 py-3 font-display text-2xl uppercase" }>{ T(ctx).StartMode(T(ctx).AroundTheClock()) }</button>
+							<button type="submit" class={ btnPrimary, btnLarge }>{ T(ctx).StartMode(T(ctx).AroundTheClock()) }</button>
 						</div>
 					</form>
 				case game.ModeCricket:
@@ -315,7 +315,7 @@ templ newGame(m HomeModel) {
 						@legsChoice(m.Settings)
 						@participants(m)
 						<div>
-							<button type="submit" class={ btnPrimary, "px-6 py-3 font-display text-2xl uppercase" }>{ T(ctx).StartMode(T(ctx).Cricket()) }</button>
+							<button type="submit" class={ btnPrimary, btnLarge }>{ T(ctx).StartMode(T(ctx).Cricket()) }</button>
 						</div>
 					</form>
 				default:

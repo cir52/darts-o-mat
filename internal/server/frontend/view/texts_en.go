@@ -46,7 +46,7 @@ func (textsEN) FirstToSets(sets, legs int) string {
 	return "First to " + strconv.Itoa(sets) + " sets of " + strconv.Itoa(legs) + " " + plural(legs, "leg", "legs")
 }
 
-func (textsEN) ToTournament() string  { return "🏆 To the tournament" }
+func (textsEN) ToTournament() string  { return "To the tournament" }
 func (textsEN) Rematch() string       { return "Rematch" }
 func (textsEN) ToRematch() string     { return "To the rematch" }
 func (textsEN) BullOff() string       { return "Bull-off" }

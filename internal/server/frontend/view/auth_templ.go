@@ -299,7 +299,7 @@ func Landing(registration bool, user string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var15 = []any{btnPrimary, "px-6 py-3 font-display text-2xl uppercase"}
+					var templ_7745c5c3_Var15 = []any{btnPrimary, btnLarge}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var15...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -334,7 +334,7 @@ func Landing(registration bool, user string) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).Login())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 48, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 48, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -353,7 +353,7 @@ func Landing(registration bool, user string) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						var templ_7745c5c3_Var18 = []any{btnSecondary, "px-6 py-3 font-display text-2xl uppercase"}
+						var templ_7745c5c3_Var18 = []any{btnSecondary, btnLarge}
 						templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var18...)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -388,7 +388,7 @@ func Landing(registration bool, user string) templ.Component {
 					var templ_7745c5c3_Var20 string
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).Register())
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 50, Col: 113}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 50, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
@@ -411,7 +411,7 @@ func Landing(registration bool, user string) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						var templ_7745c5c3_Var21 = []any{btnSecondary, "cursor-not-allowed hover:bg-transparent px-6 py-3 font-display text-2xl uppercase"}
+						var templ_7745c5c3_Var21 = []any{btnSecondary, btnLarge, "cursor-not-allowed hover:bg-transparent"}
 						templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var21...)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -432,7 +432,7 @@ func Landing(registration bool, user string) templ.Component {
 						var templ_7745c5c3_Var23 string
 						templ_7745c5c3_Var23, templ_7745c5c3_Err = templruntime.NewAttributeExpression(T(ctx).RegistrationClosed()).Resolve(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 53, Col: 171}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 53, Col: 139}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 						if templ_7745c5c3_Err != nil {
@@ -459,7 +459,7 @@ func Landing(registration bool, user string) templ.Component {
 					var templ_7745c5c3_Var24 string
 					templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).Register())
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 53, Col: 202}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 53, Col: 170}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 					if templ_7745c5c3_Err != nil {
@@ -479,7 +479,7 @@ func Landing(registration bool, user string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var25 = []any{btnPrimary, "px-6 py-3 font-display text-2xl uppercase"}
+					var templ_7745c5c3_Var25 = []any{btnPrimary, btnLarge}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var25...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -514,7 +514,7 @@ func Landing(registration bool, user string) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).HomeTitle())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 56, Col: 103}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 56, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -546,7 +546,7 @@ func Landing(registration bool, user string) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var29 = []any{btnSecondary, "px-6 py-3 font-display text-2xl uppercase"}
+				var templ_7745c5c3_Var29 = []any{btnSecondary, btnLarge}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var29...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -581,7 +581,7 @@ func Landing(registration bool, user string) templ.Component {
 			var templ_7745c5c3_Var31 string
 			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(T(ctx).ProjectPage())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 58, Col: 172}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/frontend/view/auth.templ`, Line: 58, Col: 137}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 			if templ_7745c5c3_Err != nil {

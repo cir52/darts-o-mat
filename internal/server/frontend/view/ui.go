@@ -9,8 +9,7 @@ const (
 	btnSecondary = btnBase + " border border-white/15 text-white/80 hover:bg-white/10"
 	btnDanger    = btnBase + " border border-board-red/50 text-red-300 hover:bg-board-red/20"
 	btnSmall     = "px-3 py-1.5 text-sm"
-	// btnAfterGame is a big button on the card of a finished game; its colors come with it.
-	btnAfterGame = btnBase + " mt-4 px-6 py-3 font-display text-2xl uppercase shadow-lg"
+	btnLarge     = "px-6 py-3 font-display text-2xl uppercase"
 
 	inputClass = "w-full rounded-xl border border-white/10 bg-pub-950/70 px-4 py-2.5 text-white placeholder-white/30 outline-none transition focus:border-board-green focus:ring-2 focus:ring-board-green/40"
 	labelClass = "mb-2 block text-xs font-semibold uppercase tracking-widest text-white/50"
