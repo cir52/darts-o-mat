@@ -32,19 +32,4 @@
     const target = el.dataset.refresh;
     htmx.ajax("GET", window.location.href, { target: target, select: target, swap: "outerHTML" });
   });
-
-  // The game page's answer to the dart that finished a visit keeps the visit on the card for
-  // a moment (#board[data-paused]) and then fetches the next player. Meanwhile the live
-  // stream's boards wait: they would show the next player at once. The stream's board of
-  // that same dart may come before the answer; the answer still shows the visit then, in
-  // place of the board that replaced the one it was asked from.
-  document.addEventListener("htmx:sseBeforeMessage", (e) => {
-    if (e.target.id === "board" && "paused" in e.target.dataset) e.preventDefault();
-  });
-  document.addEventListener("htmx:beforeSwap", (e) => {
-    const target = e.detail.target;
-    if (target.id !== "board" || target.isConnected) return;
-    if (!/<div id="board"[^>]*data-paused/.test(e.detail.serverResponse)) return;
-    e.detail.target = document.getElementById("board");
-  });
 })();

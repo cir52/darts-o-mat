@@ -32,14 +32,7 @@ import (
 type progress struct {
 	turn.State
 	Aborted bool
-	// Paused is set in the answer to the dart that finished a visit (progressAfterDart): the
-	// thrower stays the current player with the visit's darts for visitPause.
-	Paused bool
 }
-
-// visitPause is how long the answer to the dart that finished a visit keeps that visit on
-// the thrower's card, before the page fetches the next player (BoardAfterDart).
-const visitPause = 1500 * time.Millisecond
 
 func progressOf(v service.GameView) progress {
 	p := progress{State: v.Common()}
@@ -48,28 +41,6 @@ func progressOf(v service.GameView) progress {
 		p.CurrentPlayerID, p.WaitingForTakeout, p.Aborted = nil, false, true
 	}
 	return p
-}
-
-// progressAfterDart is the progress in the answer to a dart entered on this page: after the
-// dart that finished a visit the thrower stays up with the visit's round and darts
-// (Paused), so they see their last dart and the score before the next player is up. Not
-// when the game waits for the takeout (the darts stay in the board), after a won leg, set
-// or game (their banners show the result), nor when the thrower is up again (alone, or
-// the only one left).
-func progressAfterDart(t Texts, v service.GameView) progress {
-	p := progressOf(v)
-	visit, ok := finishedVisit(t, v)
-	if !ok || !p.running() || p.WaitingForTakeout || p.LegWinner != nil || p.SetWinner != nil || p.CurrentPlayerID == nil || *p.CurrentPlayerID == visit.PlayerID {
-		return p
-	}
-	p.CurrentPlayerID, p.Round, p.DartsInTurn, p.Paused = &visit.PlayerID, visit.Round, len(visit.Darts), true
-	return p
-}
-
-// pauseTrigger is the htmx trigger that fetches the next player when the pause is over; if
-// that fails, it tries again every 2 seconds until the next player is swapped in.
-func pauseTrigger() string {
-	return "load delay:" + strconv.FormatInt(visitPause.Milliseconds(), 10) + "ms, every 2s"
 }
 
 // running reports whether the game still takes darts.
@@ -378,7 +349,7 @@ func fitStyle(label, maxSize string) templ.SafeCSS {
 func dartTileClasses(v service.GameView, d throw.Dart) string {
 	classes := "@container flex h-14 items-center justify-center rounded-xl px-2 font-number font-extrabold uppercase shadow-lg transition sm:h-16 " + dartTileColors(v, d)
 	if isLatest(v, d) {
-		classes += " effect animate-dart-in"
+		classes += " animate-dart-in"
 	}
 	return classes
 }
@@ -456,8 +427,7 @@ func targetResult(v service.GameView, d throw.Dart) (hit, counted bool) {
 // turnClock returns how many seconds of the time for the turn are gone and how many it
 // has in total, if the turn is timed.
 func turnClock(v service.GameView, p progress) (elapsed, total float64, ok bool) {
-	// While the finished visit shows (Paused) the deadline belongs to the next player.
-	if v.TurnDeadline == nil || !p.running() || p.Paused {
+	if v.TurnDeadline == nil || !p.running() {
 		return 0, 0, false
 	}
 	total = float64(v.Game.TurnSeconds)
@@ -515,7 +485,7 @@ func soundID(v service.GameView) string {
 // turn (X01 only), nil if that isn't possible.
 func checkoutSuggestion(v service.GameView, p progress) []throw.Dart {
 	st, ok := v.State.(x01.State)
-	if !ok || !p.running() || p.Paused || p.WaitingForTakeout || p.BullingOff || p.CurrentPlayerID == nil {
+	if !ok || !p.running() || p.WaitingForTakeout || p.BullingOff || p.CurrentPlayerID == nil {
 		return nil
 	}
 	ps, _ := st.Player(*p.CurrentPlayerID)
@@ -701,8 +671,8 @@ func correcting(v service.GameView, editing *throw.Dart) bool {
 // only a picture. While a dart is corrected (correcting), the click corrects it like the
 // keypad. Otherwise it enters the next dart if the viewer may (mayEnterDart) for one of
 // their players, with or without cameras (for a dart the cameras missed), but not for a bot
-// (botUp, the server throws for it), not while the finished visit shows (Paused) and not in
-// the bull-off, where only the bull, the bullseye and a miss count (bullOffPanel).
+// (botUp, the server throws for it) and not in the bull-off, where only the bull, the
+// bullseye and a miss count (bullOffPanel).
 func boardAction(v service.GameView, p progress, editing *throw.Dart) string {
 	switch {
 	case editing != nil:
@@ -710,7 +680,7 @@ func boardAction(v service.GameView, p progress, editing *throw.Dart) string {
 			return dartEditURL(v, *editing)
 		}
 		return ""
-	case !p.Paused && !p.BullingOff && !botUp(v, p) && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID):
+	case !p.BullingOff && !botUp(v, p) && mayEnterDart(v, p) && p.CurrentPlayerID != nil && v.IsMine(*p.CurrentPlayerID):
 		return gameURL(v.Game.ID, "/darts")
 	}
 	return ""
@@ -806,9 +776,7 @@ func playerAccent(v service.GameView, id int64) accent {
 
 // lastTurn is a player's last finished turn, shown in their tile.
 type lastTurn struct {
-	PlayerID int64
-	Round    int
-	Darts    []throw.Dart
+	Darts  []throw.Dart
 	Value  string // what it scored, in X01 the points or "Bust", in Around the Clock the hits
 	Bust   bool
 	Strong bool // 100 points or more
@@ -823,7 +791,7 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 			if tr.PlayerID != playerID || !tr.Complete {
 				continue
 			}
-			r := lastTurn{PlayerID: playerID, Round: tr.Round, Darts: tr.Darts, Value: strconv.FormatUint(tr.Points, 10), Strong: tr.Points >= 100}
+			r := lastTurn{Darts: tr.Darts, Value: strconv.FormatUint(tr.Points, 10), Strong: tr.Points >= 100}
 			if tr.Bust {
 				r.Value, r.Bust = t.Busted(), true
 			}
@@ -833,7 +801,7 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 		for i := len(st.Turns) - 1; i >= 0; i-- {
 			tr := st.Turns[i]
 			if tr.PlayerID == playerID && tr.Complete {
-				return lastTurn{PlayerID: playerID, Round: tr.Round, Darts: tr.Darts, Value: strconv.Itoa(countTrue(tr.Hits))}, true
+				return lastTurn{Darts: tr.Darts, Value: strconv.Itoa(countTrue(tr.Hits))}, true
 			}
 		}
 	case cricket.State:
@@ -842,7 +810,7 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 			if tr.PlayerID != playerID || !tr.Complete {
 				continue
 			}
-			r := lastTurn{PlayerID: playerID, Round: tr.Round, Darts: tr.Darts, Value: t.NMarks(sum(tr.Marks))}
+			r := lastTurn{Darts: tr.Darts, Value: t.NMarks(sum(tr.Marks))}
 			// In Cut-Throat the points went to the opponents: not the player's score.
 			if tr.Points > 0 && st.Variant == cricket.VariantStandard {
 				r.Value += " · " + strconv.Itoa(tr.Points)
@@ -853,33 +821,23 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 	return lastTurn{}, false
 }
 
-// finishedVisit returns the visit that the log's last entry finished (the third dart, a
-// bust, a checkout), if it did. A dart of the bull-off finishes none: it is in no turn.
-func finishedVisit(t Texts, v service.GameView) (lastTurn, bool) {
-	if len(v.Darts) == 0 || !v.Darts[len(v.Darts)-1].IsDart() {
+// visitScore is the score of the visit the log's last entry finished (the third dart, a
+// bust, a checkout), shown large over the board (visitScoreView). Not for a 180 (it has its
+// own effect), nor for a won leg, set or game (their banners), nor in the bull-off, whose
+// darts are in no visit.
+func visitScore(t Texts, v service.GameView, p progress) (lastTurn, bool) {
+	if len(v.Darts) == 0 || !p.running() || p.LegWinner != nil || p.SetWinner != nil || latestTurnEvent(v) == "180" {
 		return lastTurn{}, false
 	}
 	last := v.Darts[len(v.Darts)-1]
+	if !last.IsDart() {
+		return lastTurn{}, false
+	}
 	visit, ok := lastTurnOf(t, v, last.PlayerID)
 	if !ok || len(visit.Darts) == 0 || visit.Darts[len(visit.Darts)-1].ID != last.ID {
 		return lastTurn{}, false
 	}
 	return visit, true
-}
-
-// visitScore is the score of the visit the log's last entry finished, shown large over the
-// board (visitScoreView). Not for a 180 (it has its own effect), nor for a won leg, set or
-// game (their banners).
-func visitScore(t Texts, v service.GameView, p progress) (lastTurn, bool) {
-	if !p.running() || p.LegWinner != nil || p.SetWinner != nil || latestTurnEvent(v) == "180" {
-		return lastTurn{}, false
-	}
-	return finishedVisit(t, v)
-}
-
-// visitScoreStyle makes the visit's score last as long as the pause after the visit.
-func visitScoreStyle() templ.SafeCSS {
-	return templ.SafeCSS(fmt.Sprintf("animation-duration:%.3fs", visitPause.Seconds()))
 }
 
 // lobbyPlayers names the players that are in an open game or tournament already, each with

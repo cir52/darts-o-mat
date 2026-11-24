@@ -91,7 +91,7 @@ func (c *Controller) addDart(w http.ResponseWriter, r *http.Request) {
 		c.handleDartError(w, r, id, d, err)
 		return
 	}
-	render(w, r, http.StatusOK, view.BoardAfterDart(v))
+	render(w, r, http.StatusOK, view.Board(v, ""))
 }
 
 func (c *Controller) undoDart(w http.ResponseWriter, r *http.Request) {

@@ -184,84 +184,6 @@ func visitView(t *testing.T, s x01.Settings, players []int64, log turn.Log) serv
 	return service.GameView{State: st, Darts: log.Entries}
 }
 
-func TestProgressAfterDart(t *testing.T) {
-	t.Parallel()
-	texts := textsOf(i18n.English)
-	single := func(id, player int64) throw.Dart {
-		return throw.Dart{ID: id, PlayerID: player, Number: 20, Segment: dartboard.Single}
-	}
-	s := x01.Settings{StartScore: 501, OutMode: x01.OutModeDouble}
-	two := []int64{1, 2}
-	three := []throw.Dart{single(1, 1), single(2, 1), single(3, 1)}
-
-	v := visitView(t, s, two, turn.Log{Entries: three})
-	p := progressAfterDart(texts, v)
-	if !p.Paused || *p.CurrentPlayerID != 1 || p.DartsInTurn != 3 || p.Round != 1 {
-		t.Errorf("after the third dart: %+v, want player 1 with the 3 darts of round 1", p)
-	}
-	if got := turnDarts(v, p); len(got) != 3 {
-		t.Errorf("the visit shows %d darts, want 3", len(got))
-	}
-	if p := progressOf(v); p.Paused || *p.CurrentPlayerID != 2 {
-		t.Errorf("without the answer to the dart: %+v, want player 2 up", p)
-	}
-
-	second := visitView(t, s, two, turn.Log{Entries: append(slices.Clone(three), single(4, 2), single(5, 2), single(6, 2))})
-	if p := progressAfterDart(texts, second); !p.Paused || *p.CurrentPlayerID != 2 || p.Round != 1 {
-		t.Errorf("player 2's visit: %+v, want it paused in round 1", p)
-	}
-
-	for _, tt := range []struct {
-		name    string
-		players []int64
-		log     turn.Log
-		rules   x01.Settings
-	}{
-		{"a dart that doesn't finish the visit", two, turn.Log{Entries: three[:2]}, s},
-		{"waiting for the takeout", two, turn.Log{Entries: three, WaitForTakeout: true}, s},
-		{"a visit alone", []int64{1}, turn.Log{Entries: three}, s},
-		{"the game's end", two, turn.Log{Entries: three[:1]}, x01.Settings{StartScore: 20}},
-		{"a won leg", two, turn.Log{Entries: three[:1], Legs: 2}, x01.Settings{StartScore: 20}},
-	} {
-		v := visitView(t, tt.rules, tt.players, tt.log)
-		if p := progressAfterDart(texts, v); p.Paused {
-			t.Errorf("%s: %+v, want no pause", tt.name, p)
-		}
-	}
-}
-
-// The answer to the dart that finished a visit carries the request that ends the pause.
-func TestBoardAfterDart(t *testing.T) {
-	t.Parallel()
-	single := func(id int64) throw.Dart {
-		return throw.Dart{ID: id, PlayerID: 1, Number: 20, Segment: dartboard.Single}
-	}
-	rules := x01.Settings{StartScore: 501, OutMode: x01.OutModeDouble}
-	v := visitView(t, rules, []int64{1, 2}, turn.Log{Entries: []throw.Dart{single(1), single(2), single(3)}})
-	v.Game.ID, v.Started = 7, true
-	v.Game.Mode, v.Game.Rules = game.ModeX01, &rules
-	ctx := i18n.With(context.Background(), i18n.English)
-	var b strings.Builder
-	if err := BoardAfterDart(v).Render(ctx, &b); err != nil {
-		t.Fatal(err)
-	}
-	got := b.String()
-	if !strings.Contains(got, `hx-get="/games/7/board"`) || !strings.Contains(got, `hx-trigger="load delay:1500ms, every 2s"`) {
-		t.Error("the paused visit has no request that fetches the next player")
-	}
-	// connection.js holds the live stream back by this attribute, in the board's own tag.
-	if tag := got[:strings.Index(got, ">")]; !strings.HasPrefix(tag, `<div id="board"`) || !strings.Contains(tag, "data-paused") {
-		t.Errorf("the board's tag %s isn't marked paused", tag)
-	}
-	b.Reset()
-	if err := Board(v, "").Render(ctx, &b); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(b.String(), "data-paused") || strings.Contains(b.String(), "load delay:") {
-		t.Error("the board of the live stream pauses")
-	}
-}
-
 func TestVisitScore(t *testing.T) {
 	t.Parallel()
 	dart := func(id int64, segment dartboard.Segment, number uint8) throw.Dart {
@@ -275,12 +197,14 @@ func TestVisitScore(t *testing.T) {
 	}
 
 	fives := []throw.Dart{dart(1, dartboard.Single, 5), dart(2, dartboard.Single, 5), dart(3, dartboard.Single, 5)}
-	v := visitView(t, s, two, turn.Log{Entries: fives})
-	if got, ok := score(v); !ok || got.Value != "15" || got.Bust {
+	if got, ok := score(visitView(t, s, two, turn.Log{Entries: fives})); !ok || got.Value != "15" || got.Bust {
 		t.Errorf("a visit = %+v, %v; want the 15", got, ok)
 	}
 	if got, ok := score(visitView(t, s, two, turn.Log{Entries: fives, WaitForTakeout: true})); !ok || got.Value != "15" {
 		t.Errorf("waiting for the takeout = %+v, %v; want the 15", got, ok)
+	}
+	if _, ok := score(visitView(t, s, two, turn.Log{Entries: fives[:2]})); ok {
+		t.Error("a visit that isn't finished shows a score")
 	}
 	fourth := dart(4, dartboard.Single, 5)
 	fourth.PlayerID = 2
