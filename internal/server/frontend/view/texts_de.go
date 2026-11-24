@@ -44,8 +44,8 @@ func (textsDE) FirstToSets(sets, legs int) string {
 }
 
 func (textsDE) ToTournament() string  { return "🏆 Zum Turnier" }
-func (textsDE) Rematch() string       { return "🔁 Revanche" }
-func (textsDE) ToRematch() string     { return "🔁 Zur Revanche" }
+func (textsDE) Rematch() string       { return "Revanche" }
+func (textsDE) ToRematch() string     { return "Zur Revanche" }
 func (textsDE) BullOff() string       { return "Ausbullen" }
 func (textsDE) RoundN(n int) string   { return "Runde " + strconv.Itoa(n) }
 func (textsDE) InvitedToGame() string { return "Du bist zu diesem Spiel eingeladen." }

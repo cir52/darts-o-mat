@@ -177,17 +177,24 @@ templ leaveButton(v service.GameView) {
 }
 
 // afterGame links on from a finished game to its tournament, or to its rematch, or starts
-// one (no "new game" button here; the logo in the header leads home).
+// one (no "new game" button here; the logo in the header leads home). The links are big
+// buttons (btnAfterGame) in the colors of the card they sit on.
 templ afterGame(v service.GameView, colors string) {
 	if v.Game.TournamentID != nil {
-		<a href={ templ.URL(tournamentURL(*v.Game.TournamentID, "")) } class={ "mt-4 inline-block rounded-xl px-5 py-2.5 font-semibold", colors }>{ T(ctx).ToTournament() }</a>
+		<a href={ templ.URL(tournamentURL(*v.Game.TournamentID, "")) } class={ btnAfterGame, colors }>{ T(ctx).ToTournament() }</a>
 	} else if v.RematchID != 0 {
-		<a href={ templ.URL(gameURL(v.RematchID, "")) } class={ "mt-4 inline-block rounded-xl px-5 py-2.5 font-semibold", colors }>{ T(ctx).ToRematch() }</a>
+		<a href={ templ.URL(gameURL(v.RematchID, "")) } class={ btnAfterGame, colors }>@rematchIcon()<span>{ T(ctx).ToRematch() }</span></a>
 	} else if v.CanRematch() {
 		<form method="post" action={ templ.URL(gameURL(v.Game.ID, "/rematch")) }>
-			<button type="submit" class={ "mt-4 inline-block rounded-xl px-5 py-2.5 font-semibold", colors }>{ T(ctx).Rematch() }</button>
+			<button type="submit" class={ btnAfterGame, colors }>@rematchIcon()<span>{ T(ctx).Rematch() }</span></button>
 		</form>
 	}
+}
+
+// rematchIcon is the circular arrows before the label of the rematch buttons, in the
+// button's text color.
+templ rematchIcon() {
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"></path></svg>
 }
 
 templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool) {
