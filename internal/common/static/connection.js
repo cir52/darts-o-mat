@@ -3,7 +3,8 @@
 // changed in between was pushed to nobody. htmx alone shows nothing when a request fails.
 // It also keeps an open <details data-keep-open="name"> open when htmx swaps the part of the
 // page that holds it (the game page swaps its board on every dart and every pause): a
-// request from inside the details (choosing in a menu) closes it.
+// request from inside the details (choosing in a menu) or a click outside it (entering a
+// dart elsewhere) closes it with the next swap, as without keeping it open.
 (function () {
   "use strict";
 
@@ -61,4 +62,13 @@
     const d = e.target.closest && e.target.closest("details[data-keep-open]");
     if (d) open.delete(d.dataset.keepOpen);
   });
+  document.addEventListener(
+    "click",
+    (e) => {
+      for (const d of document.querySelectorAll("details[data-keep-open][open]")) {
+        if (!d.contains(e.target)) open.delete(d.dataset.keepOpen);
+      }
+    },
+    true,
+  );
 })();

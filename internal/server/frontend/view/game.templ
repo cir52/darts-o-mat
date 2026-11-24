@@ -224,7 +224,7 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 			}
 		}
 		if p.GameOver {
-			<div class="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 p-6 text-pub-950 shadow-2xl shadow-amber-500/30 animate-dart-in" style={ effectStyle(v) } role="status">
+			<div class="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 p-6 text-pub-950 shadow-2xl shadow-amber-500/30 animate-dart-in" style={ legEndStyle(v, p) } role="status">
 				<div class="font-display text-5xl font-extrabold uppercase sm:text-6xl">{ T(ctx).WinsGame(playerName(ctx, v, *p.WinnerID)) }</div>
 				if d := p.Times.Game.Duration(); d > 0 {
 					<div class="mt-1 font-semibold tabular-nums">{ T(ctx).Duration(clock(d)) }</div>
@@ -244,8 +244,11 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 		@celebration(v, p)
 		if p.Paused {
 			// The finished visit shows for service.VisitPause; then the page fetches the next player.
-			// Same last entry, so the sound stays silent.
-			<div hidden hx-get={ gameURL(v.Game.ID, "/board") } hx-trigger={ pauseTrigger(p) } hx-target="#board" hx-swap="outerHTML"></div>
+			// Same last entry, so the sound stays silent. Its own hx-sync: #board's would drop a
+			// tap on undo while the fetch runs, or the fetch while another request runs. A fetch
+			// answered after a newer board came in (the live stream) swaps nothing: htmx swaps
+			// into the #board it started with, which is gone from the page then.
+			<div hidden hx-get={ gameURL(v.Game.ID, "/board") } hx-trigger={ pauseTrigger(p) } hx-target="#board" hx-swap="outerHTML" hx-sync="this:drop"></div>
 		}
 		// Desktop: the players (the current one with the darts of the visit), the keypad if
 		// the viewer enters darts by hand, and the board side by side, so a turn needs no
@@ -313,22 +316,29 @@ templ inputPanel(v service.GameView, p progress, editing *throw.Dart, adding, ke
 }
 
 // inputLock shows the input of darts locked, so the page keeps its layout (see handEntry):
-// while a bot is up nobody enters the bot's darts, the server throws them; while the
-// finished visit shows (Paused) the next dart isn't due yet.
+// while the finished visit shows (Paused) the next dart isn't due yet, also after a bot's
+// visit; while a bot is up nobody enters the bot's darts, the server throws them.
 templ inputLock(v service.GameView, p progress) {
 	if p.Paused {
-		// Also after a bot's visit: the next player isn't a bot's.
-		<fieldset disabled>
+		@lockedInput(T(ctx).NextPlayerSoon()) {
 			{ children... }
-		</fieldset>
+		}
 	} else if botUp(v, p) {
-		<fieldset disabled class="opacity-40" title={ T(ctx).BotThrows() }>
-			<legend class="sr-only">{ T(ctx).BotThrows() }</legend>
+		@lockedInput(T(ctx).BotThrows()) {
 			{ children... }
-		</fieldset>
+		}
 	} else {
 		{ children... }
 	}
+}
+
+// lockedInput is the input of darts dimmed and disabled, with the reason as its title and
+// for screen readers.
+templ lockedInput(reason string) {
+	<fieldset disabled class="opacity-40" title={ reason }>
+		<legend class="sr-only">{ reason }</legend>
+		{ children... }
+	</fieldset>
 }
 
 // dartTiles shows the three darts of the visit, with the way to finish where darts are
@@ -409,16 +419,17 @@ templ undoButton(v service.GameView) {
 }
 
 // celebration shows a big effect right after a special turn: 180 or busted, who starts or
-// won a leg. Each effect is offset by the time since the log's last entry (effectStyle), so
-// a later render of the page continues where it was, or shows its end.
+// won a leg. Each effect is offset by the time since the entry it shows (effectStyle, for
+// a won leg or set legEndStyle), so a later render of the page continues where it was, or
+// shows its end.
 templ celebration(v service.GameView, p progress) {
 	if player, decided := bullOffDecided(v, p); decided {
 		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-board-red to-board-green px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-board-cream shadow-lg" style={ effectStyle(v) }>{ T(ctx).Starts(playerName(ctx, v, player)) }</div>
 	}
 	if p.SetWinner != nil {
-		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-sky-300 to-sky-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-sky-500/30" style={ effectStyle(v) }>{ T(ctx).SetTo(playerName(ctx, v, *p.SetWinner)) }</div>
+		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-sky-300 to-sky-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-sky-500/30" style={ legEndStyle(v, p) }>{ T(ctx).SetTo(playerName(ctx, v, *p.SetWinner)) }</div>
 	} else if p.LegWinner != nil {
-		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-amber-500/30" style={ effectStyle(v) }>{ T(ctx).LegTo(playerName(ctx, v, *p.LegWinner)) }</div>
+		<div class="mb-4 animate-dart-in rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 px-4 py-3 text-center font-display text-3xl font-extrabold uppercase text-pub-950 shadow-lg shadow-amber-500/30" style={ legEndStyle(v, p) }>{ T(ctx).LegTo(playerName(ctx, v, *p.LegWinner)) }</div>
 	}
 	switch latestTurnEvent(v) {
 		case "180":

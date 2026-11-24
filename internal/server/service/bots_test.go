@@ -22,7 +22,7 @@ import (
 func newBotService(t *testing.T) *Service {
 	t.Helper()
 	s := newService(t)
-	s.botPause, s.botMargin = 0, 0
+	s.botPause = 0
 	s.bots = rand.New(rand.NewPCG(1, 2))
 	return s
 }
@@ -465,42 +465,5 @@ func TestBotDartsAreTheBots(t *testing.T) {
 	}
 	if !v.MayEdit(0) {
 		t.Error("anna can't correct her own dart anymore")
-	}
-}
-
-// A bot's first dart after a finished visit waits for the margin on top of its pause, so
-// the pages' fetch of the next player comes before it; its other darts don't.
-func TestBotWaitsAfterVisit(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	s := newBotService(t)
-	s.botPause, s.botMargin = time.Hour, time.Minute
-	var offset atomic.Int64
-	s.now = func() time.Time { return time.Now().Add(time.Duration(offset.Load())) }
-	anna := register(t, s, "anna")
-	id := lobbyWithBots(t, s, anna, x01Game(), 20)
-	if err := s.Start(ctx, anna, GameLobby(id)); err != nil {
-		t.Fatal(err)
-	}
-	for range 3 {
-		if _, err := s.AddDart(ctx, anna, id, t20); err != nil {
-			t.Fatal(err)
-		}
-	}
-	v, err := s.Game(ctx, anna, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if at, ok := s.botMove(v); !ok || !at.Equal(v.Darts[2].CreatedAt.Add(time.Hour+time.Minute)) {
-		t.Errorf("the bot's first dart after anna's visit at %v, %v; want the pause and the margin after her last dart", at, ok)
-	}
-
-	offset.Store(int64(3 * time.Hour))
-	s.turnTimer(id)
-	if v, err = s.Game(ctx, anna, id); err != nil {
-		t.Fatal(err)
-	}
-	if at, ok := s.botMove(v); !ok || !at.Equal(v.Darts[3].CreatedAt.Add(time.Hour)) {
-		t.Errorf("the bot's second dart at %v, %v; want the pause after its first", at, ok)
 	}
 }

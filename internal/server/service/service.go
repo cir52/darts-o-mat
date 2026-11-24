@@ -127,11 +127,9 @@ type Service struct {
 	shuffle func(n int, swap func(i, j int))
 	// bots is where the bots' darts land (bot.Throw), only used under the lock; botPause is
 	// how long a bot waits before each dart and before pulling its darts out, so the others
-	// can follow, botMargin what its first dart after a finished visit waits on top (both
-	// shorter in tests). See botturn.go.
-	bots      *rand.Rand
-	botPause  time.Duration
-	botMargin time.Duration
+	// can follow (shorter in tests). See botturn.go.
+	bots     *rand.Rand
+	botPause time.Duration
 	// dummyHash is compared against when a username doesn't exist, so a failed login takes
 	// the same time whether the username exists or not.
 	dummyHash []byte
@@ -139,7 +137,7 @@ type Service struct {
 
 func New(store *store.Store, opts Options) *Service {
 	s := &Service{store: store, opts: opts, timers: map[int64]*time.Timer{}, retries: map[int64]int{}, watchEvery: seenEvery, now: time.Now, shuffle: rand.Shuffle,
-		bots: rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())), botPause: botPause, botMargin: botVisitMargin}
+		bots: rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())), botPause: botPause}
 	if s.opts.Lock == nil {
 		s.opts.Lock = store
 	}

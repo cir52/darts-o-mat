@@ -442,6 +442,7 @@ type Texts interface {
 	ErrBotSpread(min, max int) string
 	ErrTooManyBots(max int) string
 	BotThrows() string
+	NextPlayerSoon() string
 	Invite() string
 	RemoveFromLobby() string
 	Save() string

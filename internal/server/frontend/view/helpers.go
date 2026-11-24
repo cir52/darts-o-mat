@@ -55,10 +55,11 @@ func progressOf(v service.GameView) progress {
 // sinceLastEntry) doesn't pause.
 func progressAt(v service.GameView, now time.Time) progress {
 	p := progressOf(v)
-	if !p.running() || p.WaitingForTakeout || p.BullingOff {
+	if !p.running() {
 		return p
 	}
-	// The rule that a visit pauses is turn.State.VisitEnded, the deadline's too.
+	// The rule that a visit pauses is turn.State.VisitEnded (not while the darts wait for
+	// the takeout, not in the bull-off), the deadline's too.
 	last := len(v.Darts) - 1
 	if t, ok := finishedTurn(v); ok && p.VisitEnded(last, v.Darts[last]) {
 		age := sinceLastEntry(v, now)
@@ -423,9 +424,8 @@ func isLatest(v service.GameView, d throw.Dart) bool {
 }
 
 // pauseTrigger is the htmx trigger that fires when the pause is over (rounded up, so the
-// request never comes before the server's time). If the request fails or #board drops it
-// (hx-sync) it is made again every 2 seconds; swapping in the next player removes the
-// element, which ends it.
+// request never comes before the server's time). If the request fails it is made again
+// every 2 seconds; swapping in the next player removes the element, which ends it.
 func pauseTrigger(p progress) string {
 	return "load delay:" + strconv.FormatInt(p.PauseLeft.Milliseconds()+1, 10) + "ms, every 2s"
 }
@@ -482,20 +482,32 @@ func turnsOf(v service.GameView) []visit {
 // of something else) continues where the effect was, or shows how it ends, instead of
 // playing it again. Like turnClockStyle, it only sets when the animation is.
 func effectStyle(v service.GameView) templ.SafeCSS {
-	return effectStyleAt(v, time.Now())
-}
-
-func effectStyleAt(v service.GameView, now time.Time) templ.SafeCSS {
 	if len(v.Darts) == 0 {
 		return ""
 	}
-	return templ.SafeCSS(fmt.Sprintf("animation-delay:-%.3fs", max(sinceLastEntry(v, now), 0).Seconds()))
+	return effectStyleAt(v.Darts[len(v.Darts)-1].CreatedAt, time.Now())
 }
 
-// visitScoreStyle is effectStyleAt for the visit's score, whose animation lasts as long as
+// legEndStyle is effectStyle for the banners of a won leg or set and of the game's end:
+// they count from the dart that ended the leg (turn.State.LegEnds), as they still show
+// after the takeout that follows it.
+func legEndStyle(v service.GameView, p progress) templ.SafeCSS {
+	if len(p.LegEnds) == 0 {
+		return ""
+	}
+	return effectStyleAt(v.Darts[p.LegEnds[len(p.LegEnds)-1]].CreatedAt, time.Now())
+}
+
+// effectStyleAt is the style of an effect of the entry made at the time at, at the time
+// now; an entry from the future (see sinceLastEntry) starts at its beginning.
+func effectStyleAt(at, now time.Time) templ.SafeCSS {
+	return templ.SafeCSS(fmt.Sprintf("animation-delay:-%.3fs", max(now.Sub(at), 0).Seconds()))
+}
+
+// visitScoreStyle is effectStyle for the visit's score, whose animation lasts as long as
 // the pause (service.VisitPause), whatever the CSS says.
 func visitScoreStyle(v service.GameView, now time.Time) templ.SafeCSS {
-	return templ.SafeCSS(fmt.Sprintf("animation-duration:%.3fs;", service.VisitPause.Seconds())) + effectStyleAt(v, now)
+	return templ.SafeCSS(fmt.Sprintf("animation-duration:%.3fs;", service.VisitPause.Seconds())) + effectStyleAt(v.Darts[len(v.Darts)-1].CreatedAt, now)
 }
 
 // sinceLastEntry is how long ago the log's last entry was made at the time now, 0 without

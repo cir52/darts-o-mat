@@ -2,6 +2,7 @@ package view
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -406,7 +407,6 @@ func TestVisitScore(t *testing.T) {
 func TestEffectStyleAt(t *testing.T) {
 	t.Parallel()
 	at := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
-	v := service.GameView{Darts: []throw.Dart{{ID: 1, CreatedAt: at.Add(-time.Hour)}, {ID: 2, CreatedAt: at}}}
 	tests := []struct {
 		now  time.Time
 		want string
@@ -416,12 +416,27 @@ func TestEffectStyleAt(t *testing.T) {
 		{at.Add(-time.Second), "animation-delay:-0.000s"}, // a clock that is behind
 	}
 	for _, tt := range tests {
-		if got := effectStyleAt(v, tt.now); string(got) != tt.want {
+		if got := effectStyleAt(at, tt.now); string(got) != tt.want {
 			t.Errorf("effectStyleAt(%v) = %q, want %q", tt.now.Sub(at), got, tt.want)
 		}
 	}
-	if got := effectStyleAt(service.GameView{}, at); got != "" {
-		t.Errorf("without entries: %q, want none", got)
+}
+
+// The banner of a won leg counts from the dart that won it, also after the takeout.
+func TestLegEndStyle(t *testing.T) {
+	t.Parallel()
+	at := time.Now().Add(-10 * time.Second)
+	won := throw.Dart{ID: 1, PlayerID: 1, Number: 20, Segment: dartboard.Single, CreatedAt: at}
+	takeout := throw.Dart{ID: 2, Takeout: true}
+	v := visitView(t, x01.Settings{StartScore: 20}, turn.Log{Entries: []throw.Dart{won, takeout}, Legs: 2, WaitForTakeout: true}, time.Now())
+	p := progressOf(v)
+	if p.LegWinner == nil {
+		t.Fatalf("after the takeout: %+v, want the leg's winner still shown", p)
+	}
+	style := string(legEndStyle(v, p))
+	var delay float64
+	if _, err := fmt.Sscanf(style, "animation-delay:-%fs", &delay); err != nil || delay < 10 || delay > 11 {
+		t.Errorf("legEndStyle = %q, want about 10 s since the winning dart", style)
 	}
 }
 

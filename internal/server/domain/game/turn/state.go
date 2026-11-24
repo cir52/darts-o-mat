@@ -191,10 +191,11 @@ func (t *Turn) State(playerIDs []int64) State {
 // service.VisitPause), and whose time for the turn starts after it (game.Game.TurnDeadline):
 // it is a dart (not a takeout, a skipped turn or a player leaving), not one of the
 // bull-off, it didn't end a leg or a set, whose banner shows the result and whose next
-// leg starts at once, and another player is up next (alone, or the only one left, the
-// thrower goes on at once). That it is a turn's last dart is for whoever asks to know.
+// leg starts at once, another player is up next (alone, or the only one left, the thrower
+// goes on at once), and the game doesn't wait for the darts to be taken out (the takeout
+// ends that visit). That it is a turn's last dart is for whoever asks to know.
 func (s State) VisitEnded(i int, d throw.Dart) bool {
-	return d.IsDart() &&
+	return d.IsDart() && !s.WaitingForTakeout &&
 		s.CurrentPlayerID != nil && *s.CurrentPlayerID != d.PlayerID &&
 		!slices.ContainsFunc(s.BullOff, func(b BullOffDart) bool { return b.Entry == i }) &&
 		!slices.Contains(s.LegEnds, i)
