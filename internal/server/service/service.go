@@ -432,7 +432,7 @@ func (s *Service) AddDart(ctx context.Context, acc account.Account, gameID int64
 }
 
 func (s *Service) storeDart(ctx context.Context, g *game.Game, v GameView, d throw.Dart) error {
-	d.ID, d.GameID, d.CreatedAt = 0, g.ID, time.Time{} // addEntry sets the time
+	d.ID, d.GameID, d.CreatedAt = 0, g.ID, time.Time{} // the database sets the time
 	normalizeDart(&d)
 	if cur := v.Common().CurrentPlayerID; cur != nil {
 		d.PlayerID = *cur // the replay below refuses the dart if the game is over
@@ -442,15 +442,7 @@ func (s *Service) storeDart(ctx context.Context, g *game.Game, v GameView, d thr
 	if _, err := g.Play(append(v.Darts, d)); err != nil {
 		return err
 	}
-	return s.addEntry(ctx, &d)
-}
-
-// addEntry stores an entry of a game's log with the time of the server's clock. The pause
-// after a visit and the effects of the game page count from the last entry's time, which
-// needs fractions of a second: the database's own time has whole seconds on SQLite.
-func (s *Service) addEntry(ctx context.Context, d *throw.Dart) error {
-	d.CreatedAt = s.now()
-	return s.store.AddDart(ctx, d)
+	return s.store.AddDart(ctx, &d)
 }
 
 // UndoDart removes the last entry of the game's log, if the last dart is one of the
@@ -527,7 +519,7 @@ func (s *Service) storeTakeout(ctx context.Context, g *game.Game, v GameView) er
 	if c := v.Common(); c.GameOver || (!c.WaitingForTakeout && c.DartsInTurn == 0) {
 		return nil
 	}
-	return s.addEntry(ctx, &throw.Dart{GameID: g.ID, Takeout: true})
+	return s.store.AddDart(ctx, &throw.Dart{GameID: g.ID, Takeout: true})
 }
 
 // changeGame applies change to a game the account may throw in and tells the game's
@@ -635,7 +627,7 @@ func (s *Service) build(ctx context.Context, g game.Game) (GameView, error) {
 			return GameView{}, err
 		}
 	}
-	if d, ok := g.TurnDeadline(v.Darts, v.Common(), VisitPause); ok {
+	if d, ok := g.TurnDeadline(v.Darts, v.Common()); ok {
 		started, err := s.opts.ServerStart.Started(ctx)
 		if err != nil {
 			return GameView{}, err

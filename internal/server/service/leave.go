@@ -110,7 +110,7 @@ func (s *Service) leave(ctx context.Context, acc account.Account, v GameView) (G
 		return GameView{}, fmt.Errorf("%w: %w", ErrInvalid, err)
 	}
 	for i := range entries {
-		if err := s.addEntry(ctx, &entries[i]); err != nil {
+		if err := s.store.AddDart(ctx, &entries[i]); err != nil {
 			return GameView{}, err
 		}
 	}

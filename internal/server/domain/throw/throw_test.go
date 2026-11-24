@@ -23,17 +23,3 @@ func TestHit(t *testing.T) {
 		t.Errorf("%+v: %d points, %q, %v", d, d.Score(), d.String(), d.Validate())
 	}
 }
-
-func TestFirstOfLast(t *testing.T) {
-	t.Parallel()
-	a, leave, takeout := Dart{}, Dart{Leave: true}, Dart{Takeout: true}
-	log := []Dart{a, leave, a, takeout, a}
-	for n, want := range map[int]int{0: 5, 1: 4, 2: 2, 3: 0, 4: 0} {
-		if got := FirstOfLast(log, n); got != want {
-			t.Errorf("FirstOfLast(%d) = %d, want %d", n, got, want)
-		}
-	}
-	if got := FirstOfLast(nil, 3); got != 0 {
-		t.Errorf("without a log: %d, want 0", got)
-	}
-}

@@ -4,7 +4,6 @@ Open tasks of the [server](../../cmd/darts-o-mat/README.md). Tasks of the whole 
 
 ## Game page
 
-- The visit's score over the board is a `role="status"` inside `#board`, which every swap replaces: a swap within the pause after a visit (a camera warning, a correction) may let a screen reader read the score again (left out 2026-11-24: the other banners of the page work the same way; a persistent live region outside `#board` that only its text changes would fix it for all of them).
 - Hide the keypad by default where the board can be clicked, and enter the position with a second click into the board (left out 2026-11-21: a click on the board enters only the field, without a position, and the keypad stays).
 
 ## Game modes

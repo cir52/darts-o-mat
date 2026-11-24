@@ -8,6 +8,7 @@ import (
 
 	"github.com/sj14/darts-o-mat/internal/common/dartboard"
 	"github.com/sj14/darts-o-mat/internal/server/domain/game/cricket"
+	"github.com/sj14/darts-o-mat/internal/server/domain/game/turn"
 	"github.com/sj14/darts-o-mat/internal/server/domain/throw"
 	"github.com/sj14/darts-o-mat/internal/server/service"
 )
@@ -252,14 +253,18 @@ func markDarts(v service.GameView, darts []throw.Dart, faded []bool) []boardDart
 	return marks
 }
 
-// previousTurn returns the darts of the turn before the current one: the last turn of the
-// game's state that has darts, like everything else that shows a turn (turnsOf).
+// previousTurn returns the darts of the turn before the current one.
 func previousTurn(v service.GameView) []throw.Dart {
-	turns := turnsOf(v)
-	for i := len(turns) - 1; i >= 0; i-- {
-		if len(turns[i].Darts) > 0 {
-			return turns[i].Darts
-		}
+	end := len(v.Darts)
+	for end > 0 && !v.Darts[end-1].IsDart() {
+		end--
 	}
-	return nil
+	if end == 0 {
+		return nil
+	}
+	start := end - 1
+	for start > 0 && v.Darts[start-1].IsDart() && v.Darts[start-1].PlayerID == v.Darts[end-1].PlayerID && end-start < turn.DartsPerTurn {
+		start--
+	}
+	return v.Darts[start:end]
 }

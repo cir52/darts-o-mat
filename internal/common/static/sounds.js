@@ -4,7 +4,9 @@
 // id (data-sound-id). A sound plays when the board is swapped in with a newer entry,
 // i.e. for darts entered on this device, on other devices or by the cameras. An older
 // last entry means the last one was undone. Loading the page or correcting a dart
-// (same entry) makes no sound.
+// (same entry) makes no sound. The same newer entry marks the board data-fresh, which lets
+// the effects of the entry play (see tailwind.css); so does the board that shows a
+// finished visit (data-paused) after the live stream brought its dart already.
 (() => {
   "use strict";
 
@@ -15,6 +17,7 @@
   let ctx = null;
   let bus = null; // everything plays through it: louder, with a limiter against clipping
   let lastID = null;
+  let freshID = null; // the last entry that came in new, see checkBoard
   let unlocking = false; // the current press allows audio that was blocked
 
   function enabled() {
@@ -161,8 +164,13 @@
     const board = document.getElementById("board");
     if (!board || !board.dataset.soundId) return;
     const id = Number(board.dataset.soundId);
+    const newer = lastID !== null && id > lastID;
+    if (newer || (id === lastID && freshID === id && "paused" in board.dataset)) {
+      board.dataset.fresh = "";
+      freshID = id;
+    }
     if (lastID !== null && enabled()) {
-      const play = id > lastID ? sounds[board.dataset.sound] : id < lastID ? sounds.undo : null;
+      const play = newer ? sounds[board.dataset.sound] : id < lastID ? sounds.undo : null;
       if (play) play();
     }
     lastID = id;

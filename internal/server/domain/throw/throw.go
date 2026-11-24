@@ -48,20 +48,6 @@ func (d Dart) IsDart() bool {
 	return !d.Takeout && !d.Leave && !d.Skip
 }
 
-// FirstOfLast returns the index of the first of the last n darts of a game's log, skipping
-// the entries that are no darts (a player who left in the middle of a visit): len(log) for
-// none, 0 if the log has fewer darts than that.
-func FirstOfLast(log []Dart, n int) int {
-	i := len(log)
-	for i > 0 && n > 0 {
-		i--
-		if log[i].IsDart() {
-			n--
-		}
-	}
-	return i
-}
-
 // Hit returns the field and position of the dart, without the rest of the log entry.
 func (d Dart) Hit() dartboard.Hit {
 	return dartboard.Hit{Number: d.Number, Segment: d.Segment, X: d.X, Y: d.Y}

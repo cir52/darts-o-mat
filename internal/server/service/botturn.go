@@ -8,16 +8,9 @@ import (
 	"github.com/sj14/darts-o-mat/internal/server/domain/game"
 )
 
-// VisitPause is how long a finished visit stays on the game page before the next player is
-// up, so the others see it. It counts from the time of the log's last entry, like botPause,
-// so every page and replica agrees without a timer; the next player's time for the turn
-// starts after it (game.Game.TurnDeadline). Games on a board have none: their visits wait
-// for the takeout.
-const VisitPause = 1500 * time.Millisecond
-
 // botPause is how long a bot waits before each dart and before pulling its darts out, so
 // the others can follow its turn (Service.botPause).
-const botPause = VisitPause
+const botPause = 1500 * time.Millisecond
 
 // botMove returns when a bot of the game does its next move, false if none is to come: it
 // throws when it is up, and in a game that waits for the takeout it pulls its own darts

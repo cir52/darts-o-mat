@@ -286,22 +286,17 @@ func CheckPlayers(playerIDs []int64) error {
 // with the entry before its darts, the first turn with the start of the game. While the
 // turn waits for the takeout the time counts from its last dart: then the darts are taken
 // out by the server, so nobody who went away holds the game up. A bull-off dart has its
-// time too. A turn that follows a finished visit directly (turn.State.VisitEnded: not the
-// game's start, a takeout, a skipped turn, a bull-off dart, a won leg or the same player
-// again) starts after the pause, which the game page shows the visit for. There is none
-// without a limit, before the game started and after the game is over.
-func (g Game) TurnDeadline(entries []throw.Dart, c turn.State, pause time.Duration) (time.Time, bool) {
+// time too. There is none without a limit, before the game started and after the game is
+// over.
+func (g Game) TurnDeadline(entries []throw.Dart, c turn.State) (time.Time, bool) {
 	if g.TurnSeconds == 0 || c.GameOver {
 		return time.Time{}, false
 	}
 	began := time.Time{}
 	if c.WaitingForTakeout {
 		began = entries[len(entries)-1].CreatedAt
-	} else if i := throw.FirstOfLast(entries, c.DartsInTurn) - 1; i >= 0 {
+	} else if i := len(entries) - c.DartsInTurn - 1; i >= 0 {
 		began = entries[i].CreatedAt
-		if c.VisitEnded(i, entries[i]) {
-			began = began.Add(pause)
-		}
 	} else if g.StartedAt != nil {
 		began = *g.StartedAt
 	} else {

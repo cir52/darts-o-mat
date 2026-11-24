@@ -1,10 +1,6 @@
 // Tells the player when the server can't be reached (it restarts, the network is gone),
 // and brings the live part of the page up to date when the connection is back: what
 // changed in between was pushed to nobody. htmx alone shows nothing when a request fails.
-// It also keeps an open <details data-keep-open="name"> open when htmx swaps the part of the
-// page that holds it (the game page swaps its board on every dart and every pause): a
-// request from inside the details (choosing in a menu) or a click outside it (entering a
-// dart elsewhere) closes it with the next swap, as without keeping it open.
 (function () {
   "use strict";
 
@@ -37,38 +33,18 @@
     htmx.ajax("GET", window.location.href, { target: target, select: target, swap: "outerHTML" });
   });
 
-  // The names of the open details that keep open. A capturing listener, since toggle
-  // doesn't bubble; the one for a details that is reopened below finds its name there.
-  const open = new Set();
-  document.addEventListener(
-    "toggle",
-    (e) => {
-      const name = e.target.dataset && e.target.dataset.keepOpen;
-      if (!name) return;
-      if (e.target.open) open.add(name);
-      else open.delete(name);
-    },
-    true,
-  );
-  // htmx:load fires for the new content of every swap, the live stream's too.
-  document.addEventListener("htmx:load", (e) => {
-    const root = e.target;
-    if (!root.querySelectorAll) return;
-    const found = root.matches("details[data-keep-open]") ? [root] : [];
-    root.querySelectorAll("details[data-keep-open]").forEach((d) => found.push(d));
-    for (const d of found) if (open.has(d.dataset.keepOpen)) d.open = true;
+  // The game page's answer to the dart that finished a visit keeps the visit on the card for
+  // a moment (#board[data-paused]) and then fetches the next player. Meanwhile the live
+  // stream's boards wait: they would show the next player at once. The stream's board of
+  // that same dart may come before the answer; the answer still shows the visit then, in
+  // place of the board that replaced the one it was asked from.
+  document.addEventListener("htmx:sseBeforeMessage", (e) => {
+    if (e.target.id === "board" && "paused" in e.target.dataset) e.preventDefault();
   });
-  document.addEventListener("htmx:beforeRequest", (e) => {
-    const d = e.target.closest && e.target.closest("details[data-keep-open]");
-    if (d) open.delete(d.dataset.keepOpen);
+  document.addEventListener("htmx:beforeSwap", (e) => {
+    const target = e.detail.target;
+    if (target.id !== "board" || target.isConnected) return;
+    if (!/<div id="board"[^>]*data-paused/.test(e.detail.serverResponse)) return;
+    e.detail.target = document.getElementById("board");
   });
-  document.addEventListener(
-    "click",
-    (e) => {
-      for (const d of document.querySelectorAll("details[data-keep-open][open]")) {
-        if (!d.contains(e.target)) open.delete(d.dataset.keepOpen);
-      }
-    },
-    true,
-  );
 })();
