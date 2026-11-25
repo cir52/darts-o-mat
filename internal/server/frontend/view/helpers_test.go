@@ -218,8 +218,8 @@ func TestVisitScore(t *testing.T) {
 	}
 
 	big := visitView(t, x01.Settings{StartScore: 501}, two, turn.Log{Entries: []throw.Dart{dart(1, dartboard.Triple, 20), dart(2, dartboard.Triple, 20), dart(3, dartboard.Triple, 20)}})
-	if _, ok := score(big); ok {
-		t.Error("a 180 has its own effect")
+	if got, ok := score(big); !ok || got.Value != "180!" || !got.Max {
+		t.Errorf("a 180 = %+v, %v; want 180!", got, ok)
 	}
 
 	won := visitView(t, x01.Settings{StartScore: 100, OutMode: x01.OutModeDouble}, two, turn.Log{Entries: []throw.Dart{dart(1, dartboard.Triple, 20), dart(2, dartboard.Double, 20)}, Legs: 2})

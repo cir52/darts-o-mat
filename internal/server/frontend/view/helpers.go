@@ -780,6 +780,7 @@ type lastTurn struct {
 	Value  string // what it scored, in X01 the points or "Bust", in Around the Clock the hits
 	Bust   bool
 	Strong bool // 100 points or more
+	Max    bool // 180
 }
 
 // lastTurnOf returns the last finished turn of a player, if they threw one.
@@ -791,7 +792,7 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 			if tr.PlayerID != playerID || !tr.Complete {
 				continue
 			}
-			r := lastTurn{Darts: tr.Darts, Value: strconv.FormatUint(tr.Points, 10), Strong: tr.Points >= 100}
+			r := lastTurn{Darts: tr.Darts, Value: strconv.FormatUint(tr.Points, 10), Strong: tr.Points >= 100, Max: tr.Points == 180}
 			if tr.Bust {
 				r.Value, r.Bust = t.Busted(), true
 			}
@@ -822,22 +823,36 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 }
 
 // visitScore is the score of the visit the log's last entry finished (the third dart, a
-// bust, a checkout), shown large over the board (visitScoreView). Not for a 180 (it has its
-// own effect), nor for a won leg, set or game (their banners), nor in the bull-off, whose
-// darts are in no visit.
+// bust, a checkout), shown large over the board (visitScoreView), a 180 as "180!". Not for
+// a won leg, set or game (their banners), nor in the bull-off, whose darts are in no visit.
 func visitScore(t Texts, v service.GameView, p progress) (lastTurn, bool) {
-	if len(v.Darts) == 0 || !p.running() || p.LegWinner != nil || p.SetWinner != nil || latestTurnEvent(v) == "180" {
+	// A won set has its leg winner as well.
+	if len(v.Darts) == 0 || !p.running() || p.LegWinner != nil {
 		return lastTurn{}, false
 	}
 	last := v.Darts[len(v.Darts)-1]
-	if !last.IsDart() {
+	visit, ok := lastTurnOf(t, v, last.PlayerID)
+	if !ok || !isLatest(v, visit.Darts[len(visit.Darts)-1]) {
 		return lastTurn{}, false
 	}
-	visit, ok := lastTurnOf(t, v, last.PlayerID)
-	if !ok || len(visit.Darts) == 0 || visit.Darts[len(visit.Darts)-1].ID != last.ID {
-		return lastTurn{}, false
+	if visit.Max {
+		visit.Value += "!"
 	}
 	return visit, true
+}
+
+// visitScoreClasses animate and color the visit's score: a 180 celebrates in gold, the
+// others fade in and out, red for a bust, gold for 100 points or more, else cream.
+func visitScoreClasses(score lastTurn) string {
+	switch {
+	case score.Max:
+		return "animate-celebrate text-amber-300"
+	case score.Bust:
+		return "animate-visit-score text-board-red"
+	case score.Strong:
+		return "animate-visit-score text-amber-300"
+	}
+	return "animate-visit-score text-board-cream"
 }
 
 // lobbyPlayers names the players that are in an open game or tournament already, each with

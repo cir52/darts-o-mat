@@ -326,7 +326,6 @@ func (textsDE) UndoLastDart() string      { return "↶ Letzten Dart zurücknehm
 func (textsDE) Starts(name string) string { return name + " beginnt!" }
 func (textsDE) SetTo(name string) string  { return "Set an " + name + "!" }
 func (textsDE) LegTo(name string) string  { return "Leg an " + name + "!" }
-func (textsDE) Bust() string              { return "Überworfen!" }
 func (textsDE) Busted() string            { return "überworfen" }
 func (textsDE) Win() string               { return "Sieg" }
 func (textsDE) ToThrow() string           { return "am Zug" }

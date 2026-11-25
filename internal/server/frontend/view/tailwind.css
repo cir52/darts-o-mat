@@ -48,13 +48,14 @@
   --color-pub-800: oklch(25% 0.016 260);
   --color-pub-700: oklch(33% 0.018 260);
 
-  --animate-dart-in: dart-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  /* The effects of the log's last entry continue where they were on a board that comes in
+     with that entry again (--fresh-delay, see sounds.js). */
+  --animate-dart-in: dart-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) var(--fresh-delay, 0ms) both;
   --animate-shake: shake 0.5s ease-in-out both;
-  --animate-celebrate: celebrate 2.4s ease-out both;
-  /* The score of a finished visit over the board (visitScoreView): fades in and out. As
-     long as freshFor in sounds.js, which sets --fresh-delay to continue it on a later
-     board. */
-  --animate-visit-score: visit-score 1.5s ease-out var(--fresh-delay, 0ms) both;
+  /* The score of a finished visit over the board (visitScoreView), a 180 with celebrate:
+     both as long as freshFor in sounds.js. */
+  --animate-celebrate: celebrate 2.5s ease-out var(--fresh-delay, 0ms) both;
+  --animate-visit-score: visit-score 2.5s ease-out var(--fresh-delay, 0ms) both;
   /* The target on the board lights up and fades again (opacity only, see Performance). */
   --animate-target: target 1.6s ease-in-out infinite;
   /* The bar of the time for a turn runs down; the duration and where it starts come from
@@ -211,11 +212,14 @@
     0 0 0.6em rgb(11 12 15 / 0.35);
 }
 
-/* An effect that only flashes for the log's last entry (the visit's score) shows only when
-   the board comes in with that entry new: sounds.js marks the board with data-fresh then,
-   as it plays the sound (and a board with the same entry right after, which continues it).
-   A later swap of the board (a camera warning, a correction, loading the page) leaves it
-   out instead of playing it again. */
+/* The effects of the log's last entry play only on a board sounds.js marked as coming in
+   with that entry new (data-fresh, see there): a later swap of the board (a camera warning,
+   a correction, loading the page) shows the visit's score no more and lets the darts and
+   banners appear without flying in. */
 #board:not([data-fresh]) .effect-transient {
   display: none;
+}
+
+#board:not([data-fresh]) .animate-dart-in {
+  animation: none;
 }

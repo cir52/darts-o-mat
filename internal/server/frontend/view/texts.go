@@ -223,7 +223,6 @@ type Texts interface {
 	Starts(name string) string
 	SetTo(name string) string
 	LegTo(name string) string
-	Bust() string
 	Busted() string
 	Win() string
 	ToThrow() string

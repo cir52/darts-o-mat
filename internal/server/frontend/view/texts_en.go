@@ -333,7 +333,6 @@ func (textsEN) UndoLastDart() string      { return "↶ Undo last dart" }
 func (textsEN) Starts(name string) string { return name + " starts!" }
 func (textsEN) SetTo(name string) string  { return "Set to " + name + "!" }
 func (textsEN) LegTo(name string) string  { return "Leg to " + name + "!" }
-func (textsEN) Bust() string              { return "Bust!" }
 func (textsEN) Busted() string            { return "bust" }
 func (textsEN) Win() string               { return "Win" }
 func (textsEN) ToThrow() string           { return "to throw" }
