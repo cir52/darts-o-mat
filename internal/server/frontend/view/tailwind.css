@@ -48,8 +48,7 @@
   --color-pub-800: oklch(25% 0.016 260);
   --color-pub-700: oklch(33% 0.018 260);
 
-  /* The effects of the log's last entry continue where they were on a board that comes in
-     with that entry again (--fresh-delay, see sounds.js). */
+  /* --fresh-delay: see sounds.js. */
   --animate-dart-in: dart-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) var(--fresh-delay, 0ms) both;
   --animate-shake: shake 0.5s ease-in-out both;
   /* The score of a finished visit over the board (visitScoreView), a 180 with celebrate:
@@ -212,10 +211,7 @@
     0 0 0.6em rgb(11 12 15 / 0.35);
 }
 
-/* The effects of the log's last entry play only on a board sounds.js marked as coming in
-   with that entry new (data-fresh, see there): a later swap of the board (a camera warning,
-   a correction, loading the page) shows the visit's score no more and lets the darts and
-   banners appear without flying in. */
+/* The effects of the log's last entry play only on a fresh board (data-fresh, see sounds.js). */
 #board:not([data-fresh]) .effect-transient {
   display: none;
 }

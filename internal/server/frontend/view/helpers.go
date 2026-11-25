@@ -787,8 +787,7 @@ type lastTurn struct {
 func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 	switch st := v.State.(type) {
 	case x01.State:
-		for i := len(st.Turns) - 1; i >= 0; i-- {
-			tr := st.Turns[i]
+		for _, tr := range slices.Backward(st.Turns) {
 			if tr.PlayerID != playerID || !tr.Complete {
 				continue
 			}
@@ -799,15 +798,14 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 			return r, true
 		}
 	case aroundtheclock.State:
-		for i := len(st.Turns) - 1; i >= 0; i-- {
-			tr := st.Turns[i]
-			if tr.PlayerID == playerID && tr.Complete {
-				return lastTurn{Darts: tr.Darts, Value: strconv.Itoa(countTrue(tr.Hits))}, true
+		for _, tr := range slices.Backward(st.Turns) {
+			if tr.PlayerID != playerID || !tr.Complete {
+				continue
 			}
+			return lastTurn{Darts: tr.Darts, Value: strconv.Itoa(countTrue(tr.Hits))}, true
 		}
 	case cricket.State:
-		for i := len(st.Turns) - 1; i >= 0; i-- {
-			tr := st.Turns[i]
+		for _, tr := range slices.Backward(st.Turns) {
 			if tr.PlayerID != playerID || !tr.Complete {
 				continue
 			}
