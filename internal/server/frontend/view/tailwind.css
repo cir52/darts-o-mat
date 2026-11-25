@@ -51,6 +51,10 @@
   --animate-dart-in: dart-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   --animate-shake: shake 0.5s ease-in-out both;
   --animate-celebrate: celebrate 2.4s ease-out both;
+  /* The score of a finished visit over the board (visitScoreView): fades in and out. As
+     long as freshFor in sounds.js, which sets --fresh-delay to continue it on a later
+     board. */
+  --animate-visit-score: visit-score 1.5s ease-out var(--fresh-delay, 0ms) both;
   /* The target on the board lights up and fades again (opacity only, see Performance). */
   --animate-target: target 1.6s ease-in-out infinite;
   /* The bar of the time for a turn runs down; the duration and where it starts come from
@@ -109,6 +113,24 @@
     100% {
       opacity: 0;
       transform: scale(1.3);
+    }
+  }
+
+  @keyframes visit-score {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    15% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.1);
     }
   }
 }
@@ -174,4 +196,26 @@
 @utility text-fit {
   white-space: nowrap;
   font-size: min(var(--fit-max, 3rem), calc(100cqw / (var(--fit-len, 3) * 0.6)));
+}
+
+/* text-outline gives text a thick dark outline behind the letters (paint-order: only the
+   outer half of the stroke shows) and a dark glow around it that fades out, so it stays
+   legible on any background; both scale with the font size. The shadow is painted once:
+   animate the element by opacity/transform only (see Performance). */
+@utility text-outline {
+  -webkit-text-stroke: 0.16em #0b0c0f;
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 0.12em rgb(11 12 15 / 0.9),
+    0 0 0.3em rgb(11 12 15 / 0.6),
+    0 0 0.6em rgb(11 12 15 / 0.35);
+}
+
+/* An effect that only flashes for the log's last entry (the visit's score) shows only when
+   the board comes in with that entry new: sounds.js marks the board with data-fresh then,
+   as it plays the sound (and a board with the same entry right after, which continues it).
+   A later swap of the board (a camera warning, a correction, loading the page) leaves it
+   out instead of playing it again. */
+#board:not([data-fresh]) .effect-transient {
+  display: none;
 }

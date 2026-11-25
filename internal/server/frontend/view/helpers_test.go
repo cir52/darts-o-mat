@@ -173,6 +173,61 @@ func TestLastTurnOf(t *testing.T) {
 	}
 }
 
+// visitView is an X01 game of the players after the darts.
+func visitView(t *testing.T, s x01.Settings, players []int64, log turn.Log) service.GameView {
+	t.Helper()
+	log.PlayerIDs = players
+	st, err := x01.PlayLog(s, players, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return service.GameView{State: st, Darts: log.Entries}
+}
+
+func TestVisitScore(t *testing.T) {
+	t.Parallel()
+	dart := func(id int64, segment dartboard.Segment, number uint8) throw.Dart {
+		return throw.Dart{ID: id, PlayerID: 1, Number: number, Segment: segment}
+	}
+	s := x01.Settings{StartScore: 40, OutMode: x01.OutModeDouble}
+	two := []int64{1, 2}
+	texts := textsOf(i18n.English)
+	score := func(v service.GameView) (lastTurn, bool) {
+		return visitScore(texts, v, progressOf(v))
+	}
+
+	fives := []throw.Dart{dart(1, dartboard.Single, 5), dart(2, dartboard.Single, 5), dart(3, dartboard.Single, 5)}
+	if got, ok := score(visitView(t, s, two, turn.Log{Entries: fives})); !ok || got.Value != "15" || got.Bust {
+		t.Errorf("a visit = %+v, %v; want the 15", got, ok)
+	}
+	if got, ok := score(visitView(t, s, two, turn.Log{Entries: fives, WaitForTakeout: true})); !ok || got.Value != "15" {
+		t.Errorf("waiting for the takeout = %+v, %v; want the 15", got, ok)
+	}
+	if _, ok := score(visitView(t, s, two, turn.Log{Entries: fives[:2]})); ok {
+		t.Error("a visit that isn't finished shows a score")
+	}
+	fourth := dart(4, dartboard.Single, 5)
+	fourth.PlayerID = 2
+	if _, ok := score(visitView(t, s, two, turn.Log{Entries: append(slices.Clone(fives), fourth)})); ok {
+		t.Error("the score of the visit shows after the next player's dart")
+	}
+
+	bust := visitView(t, s, two, turn.Log{Entries: []throw.Dart{dart(1, dartboard.Single, 20), dart(2, dartboard.Single, 20)}})
+	if got, ok := score(bust); !ok || !got.Bust || got.Value != texts.Busted() {
+		t.Errorf("a bust = %+v, %v; want Busted", got, ok)
+	}
+
+	big := visitView(t, x01.Settings{StartScore: 501}, two, turn.Log{Entries: []throw.Dart{dart(1, dartboard.Triple, 20), dart(2, dartboard.Triple, 20), dart(3, dartboard.Triple, 20)}})
+	if _, ok := score(big); ok {
+		t.Error("a 180 has its own effect")
+	}
+
+	won := visitView(t, x01.Settings{StartScore: 100, OutMode: x01.OutModeDouble}, two, turn.Log{Entries: []throw.Dart{dart(1, dartboard.Triple, 20), dart(2, dartboard.Double, 20)}, Legs: 2})
+	if _, ok := score(won); ok {
+		t.Error("a won leg has its own banner")
+	}
+}
+
 func TestCricketMark(t *testing.T) {
 	t.Parallel()
 	for marks, want := range []struct{ lines, circles int }{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {2, 1}} {

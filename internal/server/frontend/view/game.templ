@@ -264,8 +264,9 @@ templ scores(v service.GameView, errMsg string, editing *throw.Dart, adding bool
 					@inputPanel(v, p, editing, adding, keypad)
 				</div>
 			}
-			<div>
+			<div class="relative">
 				@dartboardView(v, p, !keypad, boardAction(v, p, editing))
+				@visitScoreView(v, p)
 			</div>
 		</div>
 		switch st := v.State.(type) {
@@ -437,6 +438,23 @@ templ targetMarks(targets []uint8) {
 				<circle cx="228" cy="228" r="26" fill="none" stroke={ boardTarget } stroke-width="12" stroke-opacity="0.5"></circle>
 			}
 		</g>
+	}
+}
+
+// visitScoreView shows the score of the visit that just finished large over the board: it
+// fades in and slowly out (animate-visit-score), only when the board comes in with that
+// dart new (effect-transient, --fresh-delay: see sounds.js), so a later swap of the board
+// doesn't show it again. It sits
+// in the board's column, which is relative, and takes no clicks. A dark outline around the
+// letters (text-outline) keeps it legible on the cream fields; the label shrinks to the
+// board's width (fitText). Red for a bust, gold for 100 points or more, else cream.
+templ visitScoreView(v service.GameView, p progress) {
+	if score, ok := visitScore(T(ctx), v, p); ok {
+		<div class="effect-transient @container pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4" role="status">
+			<div class={ "animate-visit-score text-outline font-number font-extrabold uppercase leading-none", templ.KV("text-board-red", score.Bust), templ.KV("text-amber-300", score.Strong && !score.Bust), templ.KV("text-board-cream", !score.Bust && !score.Strong) }>
+				@fitText(score.Value, "14rem")
+			</div>
+		</div>
 	}
 }
 

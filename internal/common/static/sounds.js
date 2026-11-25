@@ -5,6 +5,11 @@
 // i.e. for darts entered on this device, on other devices or by the cameras. An older
 // last entry means the last one was undone. Loading the page or correcting a dart
 // (same entry) makes no sound.
+//
+// The same newer entry marks the board data-fresh, which lets the effects that only flash
+// for it show (see tailwind.css). A board with that entry again within freshFor (the own
+// dart comes twice, as the answer and by the live stream; a camera warning) stays fresh
+// and continues the effect where it was (--fresh-delay) instead of starting it again.
 (() => {
   "use strict";
 
@@ -15,6 +20,9 @@
   let ctx = null;
   let bus = null; // everything plays through it: louder, with a limiter against clipping
   let lastID = null;
+  let freshID = null; // the entry that came in last as a newer one, at freshAt
+  let freshAt = 0;
+  const freshFor = 1500; // ms, as long as animate-visit-score
   let unlocking = false; // the current press allows audio that was blocked
 
   function enabled() {
@@ -161,6 +169,15 @@
     const board = document.getElementById("board");
     if (!board || !board.dataset.soundId) return;
     const id = Number(board.dataset.soundId);
+    const now = performance.now();
+    if (lastID !== null && id > lastID) {
+      freshID = id;
+      freshAt = now;
+    }
+    if (id === freshID && now - freshAt < freshFor) {
+      board.dataset.fresh = "";
+      board.style.setProperty("--fresh-delay", `${freshAt - now}ms`);
+    }
     if (lastID !== null && enabled()) {
       const play = id > lastID ? sounds[board.dataset.sound] : id < lastID ? sounds.undo : null;
       if (play) play();

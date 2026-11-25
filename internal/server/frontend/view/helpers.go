@@ -821,6 +821,25 @@ func lastTurnOf(t Texts, v service.GameView, playerID int64) (lastTurn, bool) {
 	return lastTurn{}, false
 }
 
+// visitScore is the score of the visit the log's last entry finished (the third dart, a
+// bust, a checkout), shown large over the board (visitScoreView). Not for a 180 (it has its
+// own effect), nor for a won leg, set or game (their banners), nor in the bull-off, whose
+// darts are in no visit.
+func visitScore(t Texts, v service.GameView, p progress) (lastTurn, bool) {
+	if len(v.Darts) == 0 || !p.running() || p.LegWinner != nil || p.SetWinner != nil || latestTurnEvent(v) == "180" {
+		return lastTurn{}, false
+	}
+	last := v.Darts[len(v.Darts)-1]
+	if !last.IsDart() {
+		return lastTurn{}, false
+	}
+	visit, ok := lastTurnOf(t, v, last.PlayerID)
+	if !ok || len(visit.Darts) == 0 || visit.Darts[len(visit.Darts)-1].ID != last.ID {
+		return lastTurn{}, false
+	}
+	return visit, true
+}
+
 // lobbyPlayers names the players that are in an open game or tournament already, each with
 // their form in its mode ("new" without enough games) and their thumbs.
 func lobbyPlayers(ctx context.Context, l service.OpenLobby) string {
